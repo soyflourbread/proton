@@ -62,6 +62,18 @@ pub struct BRDFIncident<F: Float> {
     pub multiplier: Vector3D<F>,
 }
 
+// Retract might be full reflection
+#[derive(Debug, Clone, Copy)]
+pub struct RefractIncident<F: Float> {
+    pub w_r: Vector3D<F>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum InteractIncident<F: Float> {
+    Reflect(BRDFIncident<F>),
+    Refract(RefractIncident<F>),
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct EmitIncident<F: Float> {
     pub diff: Vector3D<F>,
@@ -71,7 +83,7 @@ pub struct EmitIncident<F: Float> {
 pub struct ProcessedIncident<F: Float> {
     inner: Incident<F>,
 
-    brdf: BRDFIncident<F>,
+    interact: InteractIncident<F>,
     emit: EmitIncident<F>,
 }
 
@@ -80,8 +92,15 @@ impl<F: Float> ProcessedIncident<F> {
         self.inner
     }
 
-    pub fn brdf_multiplier(&self) -> Vector3D<F> {
-        self.brdf.multiplier
+    pub fn multiplier(&self) -> Vector3D<F> {
+        match self.interact {
+            InteractIncident::Reflect(brdf) => {
+                brdf.multiplier
+            }
+            InteractIncident::Refract(_) => {
+                Vector3D::one() // TODO: does russian roulette ensure this?
+            }
+        }
     }
 
     pub fn diff(&self) -> Vector3D<F> {
@@ -91,25 +110,46 @@ impl<F: Float> ProcessedIncident<F> {
     pub fn next_ray(&self) -> Ray<F> {
         let epsilon = F::from(0.1).unwrap();
 
-        Ray::new(
-            self.inner.coords() + self.brdf.w_r * epsilon,
-            self.brdf.w_r,
-        )
+        match self.interact {
+            InteractIncident::Reflect(brdf) => {
+                Ray::new(
+                    self.inner.coords() + brdf.w_r * epsilon,
+                    brdf.w_r,
+                )
+            }
+            InteractIncident::Refract(retract) => {
+                Ray::new(
+                    self.inner.coords() + retract.w_r * epsilon,
+                    retract.w_r,
+                )
+            }
+        }
+
     }
 }
 
 impl<F: Float> ProcessedIncident<F> {
-    pub fn new(inner: Incident<F>,
+    pub fn from_brdf(inner: Incident<F>,
                brdf: BRDFIncident<F>,
                emit: EmitIncident<F>) -> Self {
+        let interact = InteractIncident::Reflect(brdf);
+
         Self {
             inner,
-            brdf,
+            interact,
             emit,
         }
     }
 
-    pub fn set_emit(&mut self, emit: EmitIncident<F>) {
-        self.emit = emit;
+    pub fn from_refract(inner: Incident<F>,
+                     refract: RefractIncident<F>,
+                     emit: EmitIncident<F>) -> Self {
+        let interact = InteractIncident::Refract(refract);
+
+        Self {
+            inner,
+            interact,
+            emit,
+        }
     }
 }

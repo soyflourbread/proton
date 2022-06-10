@@ -54,7 +54,7 @@ impl<F: Float> Material<F> for Mono<F> {
         // };
         let brdf = self.reflector.reflect(&incident);
 
-        ProcessedIncident::new(
+        ProcessedIncident::from_brdf(
             incident,
             brdf,
             EmitIncident {

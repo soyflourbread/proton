@@ -88,7 +88,7 @@ impl<F: Float> Material<F> for Diffuse<F> {
     fn interact(&self, incident: Incident<F>) -> ProcessedIncident<F> {
         let brdf = self.reflect(&incident);
 
-        ProcessedIncident::new(
+        ProcessedIncident::from_brdf(
             incident,
             brdf,
             EmitIncident {

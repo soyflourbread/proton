@@ -30,7 +30,7 @@ fn refract<F: Float>(uv: Vector3D<F>, n: Vector3D<F>, etai_over_etat: F) -> Vect
 }
 
 impl<F: Float> Refractor<F> for Refract<F> {
-    fn sample_refracted(&self, coords: Vector3D<F>, w_i: Vector3D<F>, mut normal: Vector3D<F>, inside: bool) -> (Vector3D<F>, F) {
+    fn sample_refracted(&self, coords: Vector3D<F>, w_i: Vector3D<F>, mut normal: Vector3D<F>, inside: bool) -> Vector3D<F> {
         let refraction_ratio = if inside { // Hit from inside
             self.index_of_coin
         } else { // Hit from outside
@@ -41,22 +41,20 @@ impl<F: Float> Refractor<F> for Refract<F> {
         let sin_theta = (F::one() - cos_theta * cos_theta).sqrt();
         let cannot_refract = refraction_ratio * sin_theta > F::one();
         if cannot_refract {
-            let reflected = reflect(-w_i, normal); // Is it correct?
-            (reflected, F::one())
+            reflect(-w_i, normal)
         } else {
-            let refracted = refract(-w_i, normal, refraction_ratio);
-            (refracted, F::one())
+            refract(-w_i, normal, refraction_ratio)
         }
     }
 }
 
 impl<F: Float> Material<F> for Refract<F> {
     fn interact(&self, incident: Incident<F>) -> ProcessedIncident<F> {
-        let brdf = self.refract(&incident);
+        let refract = self.refract(&incident);
 
-        ProcessedIncident::new(
+        ProcessedIncident::from_refract(
             incident,
-            brdf,
+            refract,
             EmitIncident {
                 diff: Vector3D::zero(),
             },

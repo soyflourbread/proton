@@ -1,5 +1,5 @@
 use crate::raytrace::{Incident, ProcessedIncident};
-use crate::raytrace::incident::{BRDFIncident, EmitIncident};
+use crate::raytrace::incident::{BRDFIncident, RefractIncident, EmitIncident};
 use crate::types::Float;
 use crate::vector::Vector3D;
 
@@ -56,27 +56,17 @@ pub trait BRDFReflector<F: Float> {
 }
 
 pub trait Refractor<F: Float> {
-    fn sample_refracted(&self, coords: Vector3D<F>, w_i: Vector3D<F>, normal: Vector3D<F>, inside: bool) -> (Vector3D<F>, F);
-    fn refract(&self, incident: &Incident<F>) -> BRDFIncident<F> {
+    fn sample_refracted(&self, coords: Vector3D<F>, w_i: Vector3D<F>, normal: Vector3D<F>, inside: bool) -> Vector3D<F>;
+    fn refract(&self, incident: &Incident<F>) -> RefractIncident<F> {
         let coords = incident.coords();
         let w_i = incident.w_i();
         let normal = incident.normal();
         let inside = incident.inside();
 
-        let (w_r, pdf) = self.sample_refracted(coords, w_i, normal, inside);
+        let w_r = self.sample_refracted(coords, w_i, normal, inside);
 
-        let multiplier = if pdf == F::zero() {
-            Vector3D::one()
-        } else {
-            Vector3D::one() * w_r.dot(normal) / pdf
-        };
-
-        BRDFIncident {
-            f_r: Vector3D::one(),
+        RefractIncident {
             w_r,
-            pdf,
-
-            multiplier,
         }
     }
 }

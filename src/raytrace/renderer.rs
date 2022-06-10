@@ -268,7 +268,7 @@ impl<F: Float> RenderThread<F> {
                 let next_ray = processed.next_ray();
                 let (next_hit, next_incident) = self.cast_ray(&next_ray);
                 if next_hit { // TODO: Fix direct lighting
-                    l_x += processed.brdf_multiplier() * next_incident / self.rr;
+                    l_x += processed.multiplier() * next_incident / self.rr;
                 }
             }
 

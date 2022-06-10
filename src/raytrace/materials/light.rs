@@ -27,7 +27,7 @@ impl<F: Float> Emitter<F> for Light<F> {
 
 impl<F: Float> Material<F> for Light<F> {
     fn interact(&self, incident: Incident<F>) -> ProcessedIncident<F> {
-        ProcessedIncident::new(
+        ProcessedIncident::from_brdf(
             incident,
             BRDFIncident {
                 f_r: Vector3D::one(),
