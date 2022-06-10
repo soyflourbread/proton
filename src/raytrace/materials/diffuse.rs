@@ -18,7 +18,14 @@ impl<F: Float> Diffuse<F> {
 }
 
 impl<F: Float> BRDFReflector<F> for Diffuse<F> {
-    fn f_r(&self, coords: Vector3D<F>, w_i: Vector3D<F>, w_r: Vector3D<F>, normal: Vector3D<F>) -> Vector3D<F> {
+    fn f_r(
+        &self,
+        coords: Vector3D<F>,
+        w_i: Vector3D<F>,
+        w_r: Vector3D<F>,
+        normal: Vector3D<F>,
+        seed: F,
+    ) -> Vector3D<F> {
         let cos_alpha = normal.dot(w_r);
         if cos_alpha > F::zero() {
             return self.kd * F::FRAC_1_PI();
@@ -26,7 +33,13 @@ impl<F: Float> BRDFReflector<F> for Diffuse<F> {
         Vector3D::zero()
     }
 
-    fn sample_reflected(&self, coords: Vector3D<F>, w_i: Vector3D<F>, normal: Vector3D<F>) -> (Vector3D<F>, F) {
+    fn sample_reflected(
+        &self,
+        coords: Vector3D<F>,
+        w_i: Vector3D<F>,
+        normal: Vector3D<F>,
+        seed: F,
+    ) -> (Vector3D<F>, F) {
         let w_r = self.sample(normal);
         let pdf = self.pdf(w_r, normal);
 
@@ -90,7 +103,7 @@ impl<F: Float> Material<F> for Diffuse<F> {
         incident: Incident<F>,
         seed: F,
     ) -> ProcessedIncident<F> {
-        let brdf = self.reflect(&incident);
+        let brdf = self.reflect(&incident, seed);
 
         ProcessedIncident::from_brdf(
             incident,

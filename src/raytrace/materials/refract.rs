@@ -29,8 +29,21 @@ fn refract<F: Float>(uv: Vector3D<F>, n: Vector3D<F>, etai_over_etat: F) -> Vect
     r_out_perp + r_out_parallel
 }
 
+fn reflectance<F: Float>(cosine: F, ref_idx: F) -> F {
+    let mut r0 = (F::one() - ref_idx) / (F::one() + ref_idx);
+    r0 = r0 * r0;
+    r0 + (F::one() - r0) * (F::one() - cosine).powi(5)
+}
+
 impl<F: Float> Refractor<F> for Refract<F> {
-    fn sample_refracted(&self, coords: Vector3D<F>, w_i: Vector3D<F>, mut normal: Vector3D<F>, inside: bool) -> Vector3D<F> {
+    fn sample_refracted(
+        &self,
+        coords: Vector3D<F>,
+        w_i: Vector3D<F>,
+        mut normal: Vector3D<F>,
+        inside: bool,
+        seed: F,
+    ) -> Vector3D<F> {
         let refraction_ratio = if inside { // Hit from inside
             self.index_of_coin
         } else { // Hit from outside
@@ -40,7 +53,7 @@ impl<F: Float> Refractor<F> for Refract<F> {
         let cos_theta = w_i.dot(normal).min(F::one());
         let sin_theta = (F::one() - cos_theta * cos_theta).sqrt();
         let cannot_refract = refraction_ratio * sin_theta > F::one();
-        if cannot_refract {
+        if cannot_refract || reflectance(cos_theta, refraction_ratio) > seed {
             reflect(-w_i, normal)
         } else {
             refract(-w_i, normal, refraction_ratio)
@@ -54,7 +67,7 @@ impl<F: Float> Material<F> for Refract<F> {
         incident: Incident<F>,
         seed: F,
     ) -> ProcessedIncident<F> {
-        let refract = self.refract(&incident);
+        let refract = self.refract(&incident, seed);
 
         ProcessedIncident::from_refract(
             incident,

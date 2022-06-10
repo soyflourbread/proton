@@ -29,21 +29,23 @@ pub trait BRDFReflector<F: Float> {
         coords: Vector3D<F>,
         w_i: Vector3D<F>, w_r: Vector3D<F>,
         normal: Vector3D<F>,
+        seed: F,
     ) -> Vector3D<F>;
     fn sample_reflected(
         &self,
         coords: Vector3D<F>,
         w_i: Vector3D<F>,
         normal: Vector3D<F>,
+        seed: F,
     ) -> (Vector3D<F>, F);
-    fn reflect(&self, incident: &Incident<F>) -> BRDFIncident<F> {
+    fn reflect(&self, incident: &Incident<F>, seed: F) -> BRDFIncident<F> {
         let coords = incident.coords();
         let w_i = incident.w_i();
         let normal = incident.normal();
 
-        let (w_r, pdf) = self.sample_reflected(coords, w_i, normal);
+        let (w_r, pdf) = self.sample_reflected(coords, w_i, normal, seed);
 
-        let f_r = self.f_r(coords, w_i, w_r, normal);
+        let f_r = self.f_r(coords, w_i, w_r, normal, seed);
 
         let multiplier = if pdf == F::zero() {
             Vector3D::new(F::one(), F::one(), F::one())
@@ -70,14 +72,15 @@ pub trait Refractor<F: Float> {
         coords: Vector3D<F>,
         w_i: Vector3D<F>, normal: Vector3D<F>,
         inside: bool,
+        seed: F,
     ) -> Vector3D<F>;
-    fn refract(&self, incident: &Incident<F>) -> RefractIncident<F> {
+    fn refract(&self, incident: &Incident<F>, seed: F) -> RefractIncident<F> {
         let coords = incident.coords();
         let w_i = incident.w_i();
         let normal = incident.normal();
         let inside = incident.inside();
 
-        let w_r = self.sample_refracted(coords, w_i, normal, inside);
+        let w_r = self.sample_refracted(coords, w_i, normal, inside, seed);
 
         RefractIncident {
             w_r,

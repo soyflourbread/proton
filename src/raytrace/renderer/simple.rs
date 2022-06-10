@@ -5,78 +5,51 @@ use crate::vector::Vector3D;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
-use image::GenericImage;
 use indicatif::ProgressBar;
 use num::traits::real::Real;
 
-#[derive(Debug, Clone, Copy)]
-struct Dimensions {
-    pub width: u32,
-    pub height: u32,
-}
-
-pub struct Renderer<F: Float> {
-    dims: Dimensions,
-
-    fov: u32,
-    spp: u32,
-
+pub fn par_render<F: Float>(
+    width: u32, height: u32,
     rr: F,
-
+    scale: F,
+    eye_pos: Vector3D<F>,
     scene_gen: Arc<dyn SceneGenerator<F>>,
-
+    spp: u32,
     thread_count: u32,
-
     progress_bar: ProgressBar,
-}
+) -> Vec<(u8, u8, u8)> {
+    let mut thread_handle_vec: Vec<JoinHandle<Vec<(u8, u8, u8)>>> = Vec::new();
 
-impl<F: Float> Renderer<F> {
-    pub fn new(
-        width: u32, height: u32, fov: u32,
-        scene_gen: Arc<dyn SceneGenerator<F>>) -> Self {
-        Self {
-            dims: Dimensions {
-                width,
-                height,
-            },
-            fov,
-            spp: 1024,
-            rr: F::from(0.8 as f64).unwrap(),
-            scene_gen,
-            thread_count: 24,
-            progress_bar: ProgressBar::new((width * height) as u64),
-        }
+    for t in 0..thread_count {
+        let progress_bar = progress_bar.clone();
+        let scene_gen = scene_gen.clone();
+
+        let handle = std::thread::spawn(move || {
+            let scene = scene_gen.gen_scene();
+
+            render_thread(
+                width, height,
+                rr, scale, eye_pos,
+                scene,
+                spp,
+                t,
+                thread_count,
+                progress_bar,
+            )
+        });
+
+        thread_handle_vec.push(handle);
     }
-}
 
-impl<F: Float> Renderer<F> {
-    pub fn render(&self, eye_pos: Vector3D<F>) {
-        let fov = F::from(self.fov).unwrap();
-        let scale: F = (fov * F::from(0.5 as f64).unwrap()).to_radians().tan();
-
-        let mut im = image::DynamicImage::new_rgb8(self.dims.width, self.dims.height);
-
-        let res_vec = par_render(
-            self.dims.width, self.dims.height,
-            self.rr,
-            scale,
-            eye_pos,
-            self.scene_gen.clone(),
-            self.spp,
-            self.thread_count,
-            self.progress_bar.clone(),
-        );
-
-        for w in 0..self.dims.width {
-            for h in 0..self.dims.height {
-                let (r, g, b) = res_vec[(w * self.dims.height + h) as usize];
-                im.put_pixel(w, h, image::Rgba::from([r, g, b, 255]));
-            }
-        }
-
-        self.progress_bar.finish();
-        im.save("binary.png").unwrap();
+    let mut res_vec: Vec<(u8, u8, u8)> = Vec::with_capacity(
+        (width * height) as usize
+    );
+    for thread in thread_handle_vec {
+        let mut _res_vec = thread.join().expect("general error");
+        res_vec.append(&mut _res_vec);
     }
+
+    res_vec
 }
 
 struct RenderThread<F: Float> {
@@ -136,50 +109,6 @@ fn render_thread<F: Float>(
             res_vec.push((r, g, b));
             progress_bar.inc(1);
         }
-    }
-
-    res_vec
-}
-
-fn par_render<F: Float>(
-    width: u32, height: u32,
-    rr: F,
-    scale: F,
-    eye_pos: Vector3D<F>,
-    scene_gen: Arc<dyn SceneGenerator<F>>,
-    spp: u32,
-    thread_count: u32,
-    progress_bar: ProgressBar,
-) -> Vec<(u8, u8, u8)> {
-    let mut thread_handle_vec: Vec<JoinHandle<Vec<(u8, u8, u8)>>> = Vec::new();
-
-    for t in 0..thread_count {
-        let progress_bar = progress_bar.clone();
-        let scene_gen = scene_gen.clone();
-
-        let handle = std::thread::spawn(move || {
-            let scene = scene_gen.gen_scene();
-
-            render_thread(
-                width, height,
-                rr, scale, eye_pos,
-                scene,
-                spp,
-                t,
-                thread_count,
-                progress_bar,
-            )
-        });
-
-        thread_handle_vec.push(handle);
-    }
-
-    let mut res_vec: Vec<(u8, u8, u8)> = Vec::with_capacity(
-        (width * height) as usize
-    );
-    for thread in thread_handle_vec {
-        let mut _res_vec = thread.join().expect("general error");
-        res_vec.append(&mut _res_vec);
     }
 
     res_vec
