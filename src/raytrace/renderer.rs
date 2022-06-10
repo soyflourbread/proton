@@ -256,15 +256,17 @@ impl<F: Float> RenderThread<F> {
     }
 
     fn cast_ray(&self, ray: &Ray<F>) -> (bool, Vector3D<F>) {
+        let seed = F::sample_rand();
+
         if let Some((object, incident)) = self.intersect(ray) {
-            let processed = object.interact(incident);
+            let processed = object.interact(incident, seed);
             if processed.diff() != Vector3D::zero() {
                 return (true, processed.diff()); // Definitely hit light source
             }
 
             let mut l_x: Vector3D<F> = Vector3D::zero();
 
-            if F::sample_rand() < self.rr {
+            if seed < self.rr {
                 let next_ray = processed.next_ray();
                 let (next_hit, next_incident) = self.cast_ray(&next_ray);
                 if next_hit { // TODO: Fix direct lighting

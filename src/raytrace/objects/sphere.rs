@@ -108,8 +108,12 @@ impl<F: Float> PartialBounded<F> for Sphere<F> {
 }
 
 impl<F: Float> LightInteractable<F> for Sphere<F> {
-    fn interact(&self, incident: Incident<F>) -> ProcessedIncident<F> {
-        self.material.interact(incident)
+    fn interact(
+        &self,
+        incident: Incident<F>,
+        seed: F,
+    ) -> ProcessedIncident<F> {
+        self.material.interact(incident, seed)
     }
 }
 

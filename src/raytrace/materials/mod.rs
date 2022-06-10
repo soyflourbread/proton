@@ -5,16 +5,18 @@ use crate::vector::Vector3D;
 
 mod diffuse;
 mod light;
-mod mono;
 mod refract;
 
 pub use diffuse::Diffuse;
 pub use light::Light;
-pub use mono::Mono;
 pub use refract::Refract;
 
 pub trait Material<F: Float> {
-    fn interact(&self, incident: Incident<F>) -> ProcessedIncident<F>;
+    fn interact(
+        &self,
+        incident: Incident<F>,
+        seed: F,
+    ) -> ProcessedIncident<F>;
 }
 
 pub trait Emitter<F: Float> {
@@ -22,11 +24,18 @@ pub trait Emitter<F: Float> {
 }
 
 pub trait BRDFReflector<F: Float> {
-    fn f_r(&self,
-           coords: Vector3D<F>,
-           w_i: Vector3D<F>, w_r: Vector3D<F>,
-           normal: Vector3D<F>) -> Vector3D<F>;
-    fn sample_reflected(&self, coords: Vector3D<F>, w_i: Vector3D<F>, normal: Vector3D<F>) -> (Vector3D<F>, F);
+    fn f_r(
+        &self,
+        coords: Vector3D<F>,
+        w_i: Vector3D<F>, w_r: Vector3D<F>,
+        normal: Vector3D<F>,
+    ) -> Vector3D<F>;
+    fn sample_reflected(
+        &self,
+        coords: Vector3D<F>,
+        w_i: Vector3D<F>,
+        normal: Vector3D<F>,
+    ) -> (Vector3D<F>, F);
     fn reflect(&self, incident: &Incident<F>) -> BRDFIncident<F> {
         let coords = incident.coords();
         let w_i = incident.w_i();
@@ -56,7 +65,12 @@ pub trait BRDFReflector<F: Float> {
 }
 
 pub trait Refractor<F: Float> {
-    fn sample_refracted(&self, coords: Vector3D<F>, w_i: Vector3D<F>, normal: Vector3D<F>, inside: bool) -> Vector3D<F>;
+    fn sample_refracted(
+        &self,
+        coords: Vector3D<F>,
+        w_i: Vector3D<F>, normal: Vector3D<F>,
+        inside: bool,
+    ) -> Vector3D<F>;
     fn refract(&self, incident: &Incident<F>) -> RefractIncident<F> {
         let coords = incident.coords();
         let w_i = incident.w_i();

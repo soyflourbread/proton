@@ -49,7 +49,11 @@ impl<F: Float> Refractor<F> for Refract<F> {
 }
 
 impl<F: Float> Material<F> for Refract<F> {
-    fn interact(&self, incident: Incident<F>) -> ProcessedIncident<F> {
+    fn interact(
+        &self,
+        incident: Incident<F>,
+        seed: F,
+    ) -> ProcessedIncident<F> {
         let refract = self.refract(&incident);
 
         ProcessedIncident::from_refract(

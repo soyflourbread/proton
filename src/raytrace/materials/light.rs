@@ -26,7 +26,11 @@ impl<F: Float> Emitter<F> for Light<F> {
 }
 
 impl<F: Float> Material<F> for Light<F> {
-    fn interact(&self, incident: Incident<F>) -> ProcessedIncident<F> {
+    fn interact(
+        &self,
+        incident: Incident<F>,
+        seed: F,
+    ) -> ProcessedIncident<F> {
         ProcessedIncident::from_brdf(
             incident,
             BRDFIncident {

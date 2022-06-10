@@ -185,8 +185,12 @@ impl<F: Float> PartialBounded<F> for Mesh<F> {
 }
 
 impl<F: Float> LightInteractable<F> for Mesh<F> {
-    fn interact(&self, incident: Incident<F>) -> ProcessedIncident<F> {
-        self.material.interact(incident)
+    fn interact(
+        &self,
+        incident: Incident<F>,
+        seed: F,
+    ) -> ProcessedIncident<F> {
+        self.material.interact(incident, seed)
     }
 }
 

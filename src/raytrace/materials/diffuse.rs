@@ -85,7 +85,11 @@ fn to_world<F: Float>(w: Vector3D<F>, normal: Vector3D<F>) -> Vector3D<F> {
 }
 
 impl<F: Float> Material<F> for Diffuse<F> {
-    fn interact(&self, incident: Incident<F>) -> ProcessedIncident<F> {
+    fn interact(
+        &self,
+        incident: Incident<F>,
+        seed: F,
+    ) -> ProcessedIncident<F> {
         let brdf = self.reflect(&incident);
 
         ProcessedIncident::from_brdf(

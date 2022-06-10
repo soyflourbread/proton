@@ -17,7 +17,11 @@ pub mod materials;
 pub mod tree;
 
 pub trait LightInteractable<F: Float> {
-    fn interact(&self, incident: Incident<F>) -> ProcessedIncident<F>;
+    fn interact(
+        &self,
+        incident: Incident<F>,
+        seed: F
+    ) -> ProcessedIncident<F>;
 }
 
 pub trait Bounded<F: Float> {
