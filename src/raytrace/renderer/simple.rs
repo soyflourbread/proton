@@ -1,6 +1,7 @@
 use crate::raytrace::{Incident, Ray, RayTraceable, Scene, SceneGenerator};
 use crate::types::Float;
 use crate::vector::Vector3D;
+use crate::raytrace::renderer::Dimensions;
 
 use std::sync::Arc;
 use std::thread::JoinHandle;
@@ -8,7 +9,60 @@ use std::thread::JoinHandle;
 use indicatif::ProgressBar;
 use num::traits::real::Real;
 
-pub fn par_render<F: Float>(
+pub struct SimpleRenderer<F: Float> {
+    dims: Dimensions,
+
+    fov: u32,
+    spp: u32,
+
+    rr: F,
+
+    scene_gen: Arc<dyn SceneGenerator<F>>,
+
+    thread_count: u32,
+
+    progress_bar: ProgressBar,
+}
+
+impl<F: Float> SimpleRenderer<F> {
+    pub fn new(
+        dims: Dimensions,
+        fov: u32,
+        spp: u32,
+        rr: F,
+        scene_gen: Arc<dyn SceneGenerator<F>>,
+        thread_count: u32,
+        progress_bar: ProgressBar,
+    ) -> Self {
+        Self {
+            dims,
+            fov,
+            spp,
+            rr,
+            scene_gen,
+            thread_count,
+            progress_bar,
+        }
+    }
+
+    pub fn render(&self, eye_pos: Vector3D<F>) -> Vec<(u8, u8, u8)> {
+        let fov = F::from(self.fov).unwrap();
+        let scale: F = (fov * F::from(0.5 as f64).unwrap()).to_radians().tan();
+
+        par_render(
+            self.dims.width, self.dims.height,
+            self.rr,
+            scale,
+            eye_pos,
+            self.scene_gen.clone(),
+            self.spp,
+            self.thread_count,
+            self.progress_bar.clone(),
+        )
+    }
+}
+
+fn par_render<F: Float>(
     width: u32, height: u32,
     rr: F,
     scale: F,

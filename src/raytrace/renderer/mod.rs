@@ -12,7 +12,7 @@ use indicatif::ProgressBar;
 use num::traits::real::Real;
 
 #[derive(Debug, Clone, Copy)]
-struct Dimensions {
+pub struct Dimensions {
     pub width: u32,
     pub height: u32,
 }
@@ -53,21 +53,19 @@ impl<F: Float> Renderer<F> {
 
 impl<F: Float> Renderer<F> {
     pub fn render(&self, eye_pos: Vector3D<F>) {
-        let fov = F::from(self.fov).unwrap();
-        let scale: F = (fov * F::from(0.5 as f64).unwrap()).to_radians().tan();
-
         let mut im = image::DynamicImage::new_rgb8(self.dims.width, self.dims.height);
 
-        let res_vec = simple::par_render(
-            self.dims.width, self.dims.height,
-            self.rr,
-            scale,
-            eye_pos,
-            self.scene_gen.clone(),
+        let simple_renderer = simple::SimpleRenderer::new(
+            self.dims,
+            self.fov,
             self.spp,
+            self.rr,
+            self.scene_gen.clone(),
             self.thread_count,
             self.progress_bar.clone(),
         );
+
+        let res_vec = simple_renderer.render(eye_pos);
 
         for w in 0..self.dims.width {
             for h in 0..self.dims.height {
