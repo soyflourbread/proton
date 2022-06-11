@@ -25,6 +25,8 @@ mod backend {
 pub struct Mesh<F: Float> {
     triangles: Vec<Triangle<F>>,
 
+    area: F,
+
     min_vert: Vector3D<F>,
     max_vert: Vector3D<F>,
 }
@@ -40,6 +42,8 @@ impl<F: Float> Mesh<F> {
         let mut min_vert = Vector3D::max_value();
         let mut max_vert = Vector3D::min_value();
 
+        let mut area = F::zero();
+
         let mut triangles = Vec::new();
         for face_id in mesh.face_iter() {
             let (v0, v1, v2) = mesh.face_positions(face_id);
@@ -50,15 +54,17 @@ impl<F: Float> Mesh<F> {
             min_vert = min_vert.min(v0.min(v1.min(v2)));
             max_vert = max_vert.max(v0.max(v1.max(v2)));
 
-            triangles.push(
-                Triangle::new(
-                    v0, v1, v2,
-                )
+            let triangle = Triangle::new(
+                v0, v1, v2,
             );
+            area = area + triangle.area();
+            triangles.push(triangle);
         }
 
         Self {
             triangles,
+
+            area,
 
             min_vert,
             max_vert,
@@ -67,6 +73,10 @@ impl<F: Float> Mesh<F> {
 
     pub fn triangles(&self) -> &Vec<Triangle<F>> {
         &self.triangles
+    }
+
+    pub fn area(&self) -> F {
+        self.area
     }
 }
 

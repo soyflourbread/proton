@@ -73,8 +73,8 @@ impl SceneGenerator<f64> for PracticalSceneGenerator {
 
 fn main() {
     let scene_gen = Arc::new(PracticalSceneGenerator {});
-    // let renderer: Renderer<f64> = Renderer::new(256, 256, 40, scene_gen);
-    let renderer: Renderer<f64> = Renderer::new(1024, 1024, 40, scene_gen);
+    let renderer: Renderer<f64> = Renderer::new(256, 256, 40, scene_gen);
+    // let renderer: Renderer<f64> = Renderer::new(1024, 1024, 40, scene_gen);
 
     let eye_pos = Vector3f::new(278.0, 273.0, -800.0);
 

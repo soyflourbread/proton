@@ -76,6 +76,10 @@ impl<F: Float> BoundImpl<F> {
             bvh,
         }
     }
+
+    pub fn area(&self) -> F {
+        self.inner.area()
+    }
 }
 
 impl<F: Float> BoundImpl<F> {
@@ -199,6 +203,9 @@ impl<F: Float> RayTraceable<F> for Mesh<F> {
         self.name.clone()
     }
 
+    fn area(&self) -> F {
+        self.bound.area()
+    }
     fn emit(&self) -> Option<Vector3D<F>> {
         None
     }

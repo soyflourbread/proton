@@ -50,8 +50,11 @@ fn gen_photon_map<F: Float>(
 ) -> TheTree<F> {
     let scene = scene_gen.gen_scene();
 
+    let mut total_illumination_area = F::zero();
     for _ in 0..photon_count {
         for object in scene.objects.clone() {
+            if let Some(emit) = object.emit() { // Is light source
+            }
         }
     }
 

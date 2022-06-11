@@ -6,8 +6,6 @@ pub struct Photon<F: Float> {
     origin: Vector3D<F>,
 
     w_i: Vector3D<F>,
-
-    id: usize,
 }
 
 impl<F: Float> KdPoint for Photon<F> {

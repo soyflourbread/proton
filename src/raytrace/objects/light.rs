@@ -44,6 +44,9 @@ impl<F: Float> RayTraceable<F> for Light<F> {
         format!("light_{}", self.inner.name())
     }
 
+    fn area(&self) -> F {
+        self.inner.area()
+    }
     fn emit(&self) -> Option<Vector3D<F>> {
         Some(self.diff)
     }

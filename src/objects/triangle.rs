@@ -11,6 +11,8 @@ pub struct Triangle<F: Float> {
     e1: Vector3D<F>,
     e2: Vector3D<F>,
 
+    area: F,
+
     normal: Vector3D<F>,
 }
 
@@ -23,6 +25,7 @@ impl<F: Float> Triangle<F> {
         let e1 = v1 - v0;
         let e2 = v2 - v0;
 
+        let area = e1.cross(e2).magnitude();
         let normal = e1.cross(e2).norm();
 
         Self {
@@ -33,12 +36,18 @@ impl<F: Float> Triangle<F> {
             e1,
             e2,
 
+            area,
+
             normal,
         }
     }
 
     pub fn vertices(&self) -> (Vector3D<F>, Vector3D<F>, Vector3D<F>) {
         (self.v0.clone(), self.v1.clone(), self.v2.clone())
+    }
+
+    pub fn area(&self) -> F {
+        self.area
     }
 }
 

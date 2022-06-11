@@ -37,5 +37,6 @@ pub trait RayTraceable<F: Float>
 : LightInteractable<F> + Bounded<F> + PartialBounded<F> {
     fn name(&self) -> String;
 
+    fn area(&self) -> F;
     fn emit(&self) -> Option<Vector3D<F>>;
 }

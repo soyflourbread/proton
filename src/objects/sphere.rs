@@ -24,4 +24,9 @@ impl<F: Float> Sphere<F> {
     pub fn radius(&self) -> F {
         self.radius
     }
+
+    pub fn area(&self) -> F {
+        let _four = F::from(4u32).unwrap();
+        _four * F::PI() * self.radius * self.radius
+    }
 }
