@@ -5,12 +5,13 @@ use proton::vector::Vector3D;
 use std::sync::Arc;
 use proton::raytrace::materials::{Diffuse, Refract};
 
-type Vector3f = Vector3D<f64>;
+type RF = f64;
+type Vector3f = Vector3D<RF>;
 
 struct PracticalSceneGenerator {}
 
-impl SceneGenerator<f64> for PracticalSceneGenerator {
-    fn gen_scene(&self) -> Scene<f64> {
+impl SceneGenerator<RF> for PracticalSceneGenerator {
+    fn gen_scene(&self) -> Scene<RF> {
         let floor = Mesh::new(
             "cornellbox/floor.obj".to_string(),
             Box::new(Diffuse::new(
@@ -74,7 +75,7 @@ impl SceneGenerator<f64> for PracticalSceneGenerator {
 fn main() {
     let scene_gen = Arc::new(PracticalSceneGenerator {});
     // let renderer: Renderer<f64> = Renderer::new(256, 256, 40, scene_gen);
-    let renderer: Renderer<f64> = Renderer::new(1024, 1024, 40, scene_gen);
+    let renderer: Renderer<RF> = Renderer::new(1024, 1024, 40, scene_gen);
 
     let eye_pos = Vector3f::new(278.0, 273.0, -800.0);
 
