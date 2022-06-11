@@ -1,4 +1,4 @@
-use crate::raytrace::{Incident, Ray, RayTraceable, Scene, SceneGenerator};
+use crate::raytrace::{Incident, ProcessedIncident, Ray, RayTraceable, Scene, SceneGenerator};
 use crate::types::Float;
 use crate::vector::Vector3D;
 use crate::raytrace::renderer::Dimensions;
@@ -116,14 +116,9 @@ struct RenderThread<F: Float> {
     pub eye_pos: Vector3D<F>,
 
     pub objects: Vec<Arc<dyn RayTraceable<F>>>,
-}
+    pub lightsources: Vec<Arc<dyn RayTraceable<F>>>,
 
-fn thresh_rgb<F: Float>(mut pixel: Vector3D<F>, thresh: F) -> Vector3D<F> {
-    if pixel.magnitude() > thresh {
-        return pixel.norm() * thresh;
-    }
-
-    pixel
+    pub total_illumination_area: F,
 }
 
 fn render_thread<F: Float>(
@@ -137,6 +132,20 @@ fn render_thread<F: Float>(
     thread_count: u32,
     progress_bar: ProgressBar,
 ) -> Vec<(u8, u8, u8)> {
+    let mut lightsources = Vec::new();
+    for object in scene.objects.clone() {
+        if let Some(emit) = object.emit() { // Is light source
+            lightsources.push(object);
+        }
+    }
+
+    let mut total_illumination_area = F::zero();
+    for lightsource in lightsources.clone() {
+        if let Some(emit) = lightsource.emit() { // Is light source
+            total_illumination_area = total_illumination_area + lightsource.area();
+        }
+    }
+
     let render_thread = RenderThread {
         width,
         height,
@@ -144,6 +153,8 @@ fn render_thread<F: Float>(
         scale,
         eye_pos,
         objects: scene.objects,
+        lightsources,
+        total_illumination_area,
     };
 
     let thread_rows = width / thread_count;
@@ -168,7 +179,32 @@ fn render_thread<F: Float>(
     res_vec
 }
 
+fn thresh_rgb<F: Float>(mut pixel: Vector3D<F>, thresh: F) -> Vector3D<F> {
+    if pixel.magnitude() > thresh {
+        return pixel.norm() * thresh;
+    }
+
+    pixel
+}
+
 impl<F: Float> RenderThread<F> {
+    fn sample_lightsource(
+        &self,
+        seed: F,
+    ) -> Arc<dyn RayTraceable<F>> {
+        let mut partial_illum_area = self.total_illumination_area * seed;
+        for lightsource in self.lightsources.clone() {
+            if let Some(emit) = lightsource.emit() { // Is light source
+                partial_illum_area = partial_illum_area - lightsource.area();
+                if partial_illum_area <= F::zero() { // The chosen one
+                    return lightsource;
+                }
+            }
+        }
+
+        panic!("faulty seed or illumination area")
+    }
+
     fn render_one(&self, w: u32, h: u32, spp: u32) -> (u8, u8, u8) {
         let width = F::from(self.width as f64).unwrap();
         let height = F::from(self.height as f64).unwrap();
@@ -192,15 +228,15 @@ impl<F: Float> RenderThread<F> {
                 eye_pos.z + F::one());
             let dir = (lookat_pos - eye_pos).norm();
 
-            let (hit, local_res) = self.cast_ray(
+            let local_res = self.cast_ray(
                 &Ray::new(eye_pos, dir)
             );
-            // let local_res = thresh_rgb(local_res, F::from(8.0).unwrap());
+            let local_res = thresh_rgb(local_res, F::from(1.2).unwrap());
             if local_res.x < F::zero() || local_res.y < F::zero() || local_res.z < F::zero() {
-                // println!("negative pixel");
-            } else {
-                res += local_res * _1_spp;
+                println!("negative pixel");
             }
+
+            res += local_res * _1_spp;
         }
 
         let factor = F::from((1.0 / 2.2) as f64).unwrap();
@@ -238,28 +274,119 @@ impl<F: Float> RenderThread<F> {
         Some((min_object, min_incident))
     }
 
-    fn cast_ray(&self, ray: &Ray<F>) -> (bool, Vector3D<F>) {
-        let seed = F::sample_rand();
-
-        if let Some((object, incident)) = self.intersect(ray) {
-            if let Some(diff) = object.emit() {
-                return (true, diff); // Definitely hit light source
-            }
-
-            let processed = object.interact(incident, seed);
-            let mut l_x: Vector3D<F> = Vector3D::zero();
-
-            if seed < self.rr {
-                let next_ray = processed.next_ray();
-                let (next_hit, next_incident) = self.cast_ray(&next_ray);
-                if next_hit { // TODO: Fix direct lighting
-                    l_x += processed.multiplier() * next_incident / self.rr;
-                }
-            }
-
-            return (true, l_x);
+    fn calc_direct_brdf(
+        &self,
+        processed: &ProcessedIncident<F>,
+        next_object: Arc<dyn RayTraceable<F>>,
+    ) -> Vector3D<F> {
+        if let Some(emit) = next_object.emit() {
+            return emit * processed.multiplier();
         }
 
-        (false, Vector3D::zero())
+        Vector3D::zero()
+    }
+
+    fn calc_direct_light(
+        &self,
+        object: Arc<dyn RayTraceable<F>>,
+        incident: &Incident<F>,
+        seed: F,
+    ) -> Vector3D<F> {
+        let lightsource = self.sample_lightsource(seed);
+        let emit = lightsource.emit().expect("the sun!no!!!!!");
+        let (ray, light_pdf_area) = lightsource.sample_light();
+
+        let coords = ray.origin();
+        let w_r = (coords - incident.coords()).norm();
+
+        let light_ray = Ray::new(
+            incident.coords(),
+            w_r,
+        );
+
+        if let Some((
+                        next_object,
+                        next_incident,
+                    )) = self.intersect(&light_ray) {
+            let epsilon = F::from(0.1f32).unwrap();
+            if (next_incident.coords() - coords).magnitude() < epsilon {
+                let x_diff = incident.coords() - coords;
+                let _cos = x_diff.norm().dot(next_incident.normal());
+                let light_pdf = light_pdf_area * x_diff.dot(x_diff) / _cos;
+
+                let processed = object.interact_predetermined(
+                    incident.clone(),
+                    w_r, // Outgoing
+                    light_pdf,
+                    seed);
+
+                return emit * processed.multiplier();
+            }
+        }
+
+        Vector3D::zero()
+    }
+
+    fn calc_indirect(
+        &self,
+        processed: &ProcessedIncident<F>,
+        next_object: Arc<dyn RayTraceable<F>>,
+        next_incident: Incident<F>,
+    ) -> Vector3D<F> {
+        processed.multiplier() * self.calc(next_object, next_incident)
+    }
+
+    fn calc(
+        &self,
+        object: Arc<dyn RayTraceable<F>>,
+        incident: Incident<F>,
+    ) -> Vector3D<F> {
+        if let Some(diff) = object.emit() {
+            return diff;
+        }
+
+        let seed = F::sample_rand();
+
+        let w_0 = F::from(0.7f32).unwrap();
+        let w_1 = F::from(0.3f32).unwrap();
+
+        let processed = object.interact(incident, seed);
+        let mut l_x: Vector3D<F> = Vector3D::zero();
+
+        l_x = l_x + self.calc_direct_light(
+            object.clone(),
+            &incident,
+            seed,
+        ) * w_0;
+
+        if let Some((
+                        next_object,
+                        next_incident,
+                    )) = self.intersect(&processed.next_ray()) {
+            l_x = l_x + self.calc_direct_brdf(
+                &processed,
+                next_object.clone(),
+            ) * w_1;
+
+            let _thresh = F::from(1.2f32).unwrap();
+            if l_x.x > _thresh || l_x.y > _thresh || l_x.z > _thresh {
+                return l_x;
+            }
+
+            if next_object.emit().is_none() && seed < self.rr {
+                let indirect = self.calc_indirect(&processed, next_object, next_incident);
+                l_x = l_x + (indirect / self.rr);
+            }
+        }
+
+        l_x
+    }
+
+    fn cast_ray(&self, ray: &Ray<F>) -> Vector3D<F> {
+        if let Some((object, incident)) = self.intersect(ray) {
+            return self.calc(object, incident);
+        }
+
+        Vector3D::zero()
     }
 }

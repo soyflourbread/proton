@@ -2,10 +2,39 @@ use kd_tree::{KdPoint, KdTree};
 use crate::types::Float;
 use crate::vector::Vector3D;
 
+#[derive(Clone)]
 pub struct Photon<F: Float> {
-    origin: Vector3D<F>,
+    coords: Vector3D<F>,
 
     w_i: Vector3D<F>,
+
+    diff: Vector3D<F>,
+}
+
+impl<F: Float> Photon<F> {
+    pub fn new(
+        coords: Vector3D<F>,
+        w_i: Vector3D<F>,
+        diff: Vector3D<F>,
+    ) -> Self {
+        Self {
+            coords,
+            w_i,
+            diff,
+        }
+    }
+
+    pub fn coords(&self) -> Vector3D<F> {
+        self.coords
+    }
+
+    pub fn w_i(&self) -> Vector3D<F> {
+        self.w_i
+    }
+
+    pub fn diff(&self) -> Vector3D<F> {
+        self.diff
+    }
 }
 
 impl<F: Float> KdPoint for Photon<F> {
@@ -14,9 +43,9 @@ impl<F: Float> KdPoint for Photon<F> {
     // 2 dimensional tree.
     fn at(&self, k: usize) -> f64 {
         let res = match k {
-            0 => self.origin.x,
-            1 => self.origin.x,
-            2 => self.origin.x,
+            0 => self.coords.x,
+            1 => self.coords.y,
+            2 => self.coords.z,
             _ => panic!("wrong dims"),
         };
 
@@ -24,7 +53,7 @@ impl<F: Float> KdPoint for Photon<F> {
     }
 }
 
-
+#[derive(Clone)]
 pub struct TheTree<F: Float> {
     inner: KdTree<Photon<F>>,
 }
@@ -36,5 +65,27 @@ impl<F: Float> TheTree<F> {
         Self {
             inner,
         }
+    }
+
+    pub fn knn(&self, coords: Vector3D<F>, k: u32) -> (Vec<Photon<F>>, F) {
+        let found = self.inner.nearests(
+            &[
+                coords.x.to_f64().unwrap(),
+                coords.y.to_f64().unwrap(),
+                coords.z.to_f64().unwrap(),
+            ],
+            k as usize,
+        );
+
+        let photons = found.iter()
+            .map(|f| f.item.clone())
+            .collect::<Vec<Photon<F>>>();
+
+        let mut radius = F::zero();
+        for photon in &photons {
+            radius = radius.max((photon.coords - coords).magnitude());
+        }
+
+        (photons, radius)
     }
 }

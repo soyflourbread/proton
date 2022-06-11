@@ -15,6 +15,13 @@ pub trait Material<F: Float> {
         incident: Incident<F>,
         seed: F,
     ) -> ProcessedIncident<F>;
+    fn interact_predetermined(
+        &self,
+        incident: Incident<F>,
+        w_r: Vector3D<F>,
+        pdf: F,
+        seed: F,
+    ) -> ProcessedIncident<F>;
 }
 
 pub trait BRDFReflector<F: Float> {
@@ -32,12 +39,15 @@ pub trait BRDFReflector<F: Float> {
         normal: Vector3D<F>,
         seed: F,
     ) -> (Vector3D<F>, F);
-    fn reflect(&self, incident: &Incident<F>, seed: F) -> BRDFIncident<F> {
+    fn reflect_predetermined(
+        &self,
+        incident: &Incident<F>,
+        w_r: Vector3D<F>,
+        pdf: F,
+        seed: F) -> BRDFIncident<F> {
         let coords = incident.coords();
         let w_i = incident.w_i();
         let normal = incident.normal();
-
-        let (w_r, pdf) = self.sample_reflected(coords, w_i, normal, seed);
 
         let f_r = self.f_r(coords, w_i, w_r, normal, seed);
 
@@ -57,6 +67,21 @@ pub trait BRDFReflector<F: Float> {
 
             multiplier,
         }
+    }
+
+    fn reflect(&self, incident: &Incident<F>, seed: F) -> BRDFIncident<F> {
+        let coords = incident.coords();
+        let w_i = incident.w_i();
+        let normal = incident.normal();
+
+        let (w_r, pdf) = self.sample_reflected(coords, w_i, normal, seed);
+
+        self.reflect_predetermined(
+            incident,
+            w_r,
+            pdf,
+            seed
+        )
     }
 }
 

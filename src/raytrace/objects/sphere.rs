@@ -116,6 +116,20 @@ impl<F: Float> LightInteractable<F> for Sphere<F> {
     ) -> ProcessedIncident<F> {
         self.material.interact(incident, seed)
     }
+
+    fn interact_predetermined(
+        &self,
+        incident: Incident<F>,
+        w_r: Vector3D<F>,
+        pdf: F,
+        seed: F) -> ProcessedIncident<F> {
+        self.material.interact_predetermined(
+            incident,
+            w_r,
+            pdf,
+            seed,
+        )
+    }
 }
 
 impl<F: Float> RayTraceable<F> for Sphere<F> {
@@ -139,8 +153,8 @@ impl<F: Float> RayTraceable<F> for Sphere<F> {
 
             Vector3D::new(
                 phi.cos(),
-                phi.sin()*theta.cos(),
-                phi.sin()*theta.sin())
+                phi.sin() * theta.cos(),
+                phi.sin() * theta.sin())
         };
 
         let coords = self.inner.center() + normal.clone() * self.inner.radius();

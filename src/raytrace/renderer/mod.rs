@@ -42,7 +42,7 @@ impl<F: Float> Renderer<F> {
                 height,
             },
             fov,
-            spp: 1024,
+            spp: 64,
             rr: F::from(0.8 as f64).unwrap(),
             scene_gen,
             thread_count: 24,
@@ -53,17 +53,28 @@ impl<F: Float> Renderer<F> {
 
 impl<F: Float> Renderer<F> {
     pub fn render_photon(&self, eye_pos: Vector3D<F>) {
+        let mut im = image::DynamicImage::new_rgb8(self.dims.width, self.dims.height);
+
         let photon_renderer = photon::PhotonRenderer::new(
             self.dims,
             self.fov,
-            self.spp,
             self.rr,
             self.scene_gen.clone(),
             self.thread_count,
             self.progress_bar.clone(),
         );
 
-        photon_renderer.render(eye_pos);
+        let res_vec = photon_renderer.render(eye_pos);
+
+        for w in 0..self.dims.width {
+            for h in 0..self.dims.height {
+                let (r, g, b) = res_vec[(w * self.dims.height + h) as usize];
+                im.put_pixel(w, h, image::Rgba::from([r, g, b, 255]));
+            }
+        }
+
+        self.progress_bar.finish();
+        im.save("binary-photon.png").unwrap();
     }
 
     pub fn render(&self, eye_pos: Vector3D<F>) {

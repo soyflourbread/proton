@@ -25,6 +25,20 @@ impl<F: Float> LightInteractable<F> for Light<F> {
     fn interact(&self, incident: Incident<F>, seed: F) -> ProcessedIncident<F> {
         self.inner.interact(incident, seed)
     }
+
+    fn interact_predetermined(
+        &self,
+        incident: Incident<F>,
+        w_r: Vector3D<F>,
+        pdf: F,
+        seed: F) -> ProcessedIncident<F> {
+        self.inner.interact_predetermined(
+            incident,
+            w_r,
+            pdf,
+            seed,
+        )
+    }
 }
 
 impl<F: Float> Bounded<F> for Light<F> {

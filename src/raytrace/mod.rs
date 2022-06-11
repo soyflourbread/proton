@@ -23,6 +23,14 @@ pub trait LightInteractable<F: Float> {
         incident: Incident<F>,
         seed: F
     ) -> ProcessedIncident<F>;
+
+    fn interact_predetermined(
+        &self,
+        incident: Incident<F>,
+        w_r: Vector3D<F>,
+        pdf: F,
+        seed: F
+    ) -> ProcessedIncident<F>;
 }
 
 pub trait Bounded<F: Float> {
@@ -39,6 +47,7 @@ pub trait RayTraceable<F: Float>
 
     fn area(&self) -> F;
     fn emit(&self) -> Option<Vector3D<F>>;
+
     fn sample_light(&self) -> (Ray<F>, F);
 }
 

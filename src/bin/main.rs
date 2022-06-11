@@ -18,16 +18,16 @@ impl SceneGenerator<f64> for PracticalSceneGenerator {
             )),
         );
 
-        // let short_box = Mesh::new(
-        //     "cornellbox/shortbox.obj".to_string(),
-        //     Box::new(Diffuse::new(
-        //         Vector3f::new(0.725, 0.71, 0.68),
-        //     ))
-        // );
         let short_box = Mesh::new(
             "cornellbox/shortbox.obj".to_string(),
-            Box::new(Refract::new(1.2)),
+            Box::new(Diffuse::new(
+                Vector3f::new(0.725, 0.71, 0.68),
+            ))
         );
+        // let short_box = Mesh::new(
+        //     "cornellbox/shortbox.obj".to_string(),
+        //     Box::new(Refract::new(1.2)),
+        // );
         let tall_box = Mesh::new(
             "cornellbox/tallbox.obj".to_string(),
             Box::new(Diffuse::new(
@@ -73,8 +73,8 @@ impl SceneGenerator<f64> for PracticalSceneGenerator {
 
 fn main() {
     let scene_gen = Arc::new(PracticalSceneGenerator {});
-    let renderer: Renderer<f64> = Renderer::new(256, 256, 40, scene_gen);
-    // let renderer: Renderer<f64> = Renderer::new(1024, 1024, 40, scene_gen);
+    // let renderer: Renderer<f64> = Renderer::new(256, 256, 40, scene_gen);
+    let renderer: Renderer<f64> = Renderer::new(1024, 1024, 40, scene_gen);
 
     let eye_pos = Vector3f::new(278.0, 273.0, -800.0);
 

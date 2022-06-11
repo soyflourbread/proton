@@ -97,11 +97,11 @@ impl<F: Float> Triangle<F> {
     }
 
     pub fn hit(&self, ray: &Ray<F>) -> Option<Incident<F>> {
-        // TODO: Fix refraction
-        if ray.direction().dot(self.normal) > F::zero() { // Hit from inside
-            let inv_tri = Self::new(self.v0, self.v2, self.v1);
-            return inv_tri.hit_impl(ray, true);
-        }
+        // TODO: Fix this!!! Somehow caused all my issues.
+        // if ray.direction().dot(self.normal) > F::zero() { // Hit from inside
+        //     let inv_tri = Self::new(self.v0, self.v2, self.v1);
+        //     return inv_tri.hit_impl(ray, true);
+        // }
 
         self.hit_impl(ray, false)
     }

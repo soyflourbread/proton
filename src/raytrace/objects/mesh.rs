@@ -117,7 +117,7 @@ impl<F: Float> BoundImpl<F> {
             }
         }
 
-        self.inner.triangles()[0].clone()
+        unreachable!("congratulations")
     }
 }
 
@@ -209,6 +209,20 @@ impl<F: Float> LightInteractable<F> for Mesh<F> {
         seed: F,
     ) -> ProcessedIncident<F> {
         self.material.interact(incident, seed)
+    }
+
+    fn interact_predetermined(
+        &self,
+        incident: Incident<F>,
+        w_r: Vector3D<F>,
+        pdf: F,
+        seed: F) -> ProcessedIncident<F> {
+        self.material.interact_predetermined(
+            incident,
+            w_r,
+            pdf,
+            seed,
+        )
     }
 }
 

@@ -40,10 +40,6 @@ impl<F: Float> Incident<F> {
         self.normal
     }
 
-    pub fn invert_normal(&mut self) {
-        self.normal = -self.normal;
-    }
-
     pub fn distance(&self) -> F {
         self.distance
     }
@@ -87,6 +83,14 @@ pub struct ProcessedIncident<F: Float> {
 impl<F: Float> ProcessedIncident<F> {
     pub fn inner(&self) -> Incident<F> {
         self.inner
+    }
+
+    pub fn f_r(&self) -> Vector3D<F> {
+        if let InteractIncident::Reflect(brdf) = self.interact {
+            return brdf.f_r;
+        }
+
+        Vector3D::zero()
     }
 
     pub fn multiplier(&self) -> Vector3D<F> {

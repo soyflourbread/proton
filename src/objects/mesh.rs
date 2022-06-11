@@ -51,8 +51,8 @@ impl<F: Float> Mesh<F> {
             let v1 = backend::vector_3d_from_vec3(v1);
             let v2 = backend::vector_3d_from_vec3(v2);
 
-            min_vert = min_vert.min(v0.min(v1.min(v2)));
-            max_vert = max_vert.max(v0.max(v1.max(v2)));
+            min_vert = min_vert.min(v0.min(v1.min(v2.clone())));
+            max_vert = max_vert.max(v0.max(v1.max(v2.clone())));
 
             let triangle = Triangle::new(
                 v0, v1, v2,

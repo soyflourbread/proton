@@ -74,4 +74,8 @@ impl<F: Float> Material<F> for Refract<F> {
             refract,
         )
     }
+
+    fn interact_predetermined(&self, incident: Incident<F>, w_r: Vector3D<F>, pdf: F, seed: F) -> ProcessedIncident<F> {
+        self.interact(incident, seed)
+    }
 }

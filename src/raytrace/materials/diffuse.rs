@@ -95,4 +95,18 @@ impl<F: Float> Material<F> for Diffuse<F> {
             brdf,
         )
     }
+
+    fn interact_predetermined(
+        &self,
+        incident: Incident<F>,
+        w_r: Vector3D<F>,
+        pdf: F,
+        seed: F) -> ProcessedIncident<F> {
+        let brdf = self.reflect_predetermined(&incident, w_r, pdf, seed);
+
+        ProcessedIncident::from_brdf(
+            incident,
+            brdf,
+        )
+    }
 }
