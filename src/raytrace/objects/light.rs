@@ -50,4 +50,8 @@ impl<F: Float> RayTraceable<F> for Light<F> {
     fn emit(&self) -> Option<Vector3D<F>> {
         Some(self.diff)
     }
+
+    fn sample_light(&self) -> (Ray<F>, F) {
+        self.inner.sample_light()
+    }
 }

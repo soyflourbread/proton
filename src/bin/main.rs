@@ -81,6 +81,7 @@ fn main() {
     println!("Start rendering...");
     let start = std::time::Instant::now();
     renderer.render(eye_pos);
+    // renderer.render_photon(eye_pos);
     let duration = start.elapsed();
     println!("Time elapsed in render() is: {:?}", duration);
 }

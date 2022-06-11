@@ -105,6 +105,20 @@ impl<F: Float> BoundImpl<F> {
 
         min_incident
     }
+
+    pub fn sample_triangle(&self) -> base::Triangle<F> {
+        let seed = F::sample_rand();
+        let mut sampled_area = self.area() * seed;
+
+        for triangle in self.inner.triangles() {
+            sampled_area = sampled_area - triangle.area();
+            if sampled_area <= F::zero() {
+                return triangle.clone();
+            }
+        }
+
+        self.inner.triangles()[0].clone()
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -208,6 +222,15 @@ impl<F: Float> RayTraceable<F> for Mesh<F> {
     }
     fn emit(&self) -> Option<Vector3D<F>> {
         None
+    }
+
+    fn sample_light(&self) -> (Ray<F>, F) {
+        let triangle = self.bound.sample_triangle();
+
+        let (ray, _) = triangle.sample_light();
+        let pdf = F::one() / self.area();
+
+        (ray, pdf)
     }
 }
 

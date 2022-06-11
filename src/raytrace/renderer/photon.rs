@@ -41,6 +41,14 @@ impl<F: Float> PhotonRenderer<F> {
             progress_bar,
         }
     }
+
+    pub fn render(&self, eye_pos: Vector3D<F>) {
+        gen_photon_map(
+            self.rr,
+            1000usize,
+            self.scene_gen.clone(),
+        );
+    }
 }
 
 fn gen_photon_map<F: Float>(
@@ -50,13 +58,20 @@ fn gen_photon_map<F: Float>(
 ) -> TheTree<F> {
     let scene = scene_gen.gen_scene();
 
-    let mut total_illumination_area = F::zero();
-    for _ in 0..photon_count {
-        for object in scene.objects.clone() {
-            if let Some(emit) = object.emit() { // Is light source
-            }
+    let mut lightsource_vec = Vec::new();
+    for object in scene.objects.clone() {
+        if let Some(emit) = object.emit() { // Is light source
+            lightsource_vec.push(object);
         }
     }
+
+    let mut total_illumination_area = F::zero();
+    for lightsource in lightsource_vec {
+        if let Some(emit) = lightsource.emit() { // Is light source
+            total_illumination_area = total_illumination_area + lightsource.area();
+        }
+    }
+    println!("Total illum area: {}", total_illumination_area.to_f64().unwrap());
 
     todo!()
 }

@@ -1,5 +1,6 @@
+use num::traits::real::Real;
 use crate::vector::Vector3D;
-use crate::raytrace::{Incident, Ray, RayTraceable, ProcessedIncident, PartialBounded, Bounded, LightInteractable};
+use crate::raytrace::{Incident, Ray, RayTraceable, ProcessedIncident, PartialBounded, Bounded, LightInteractable, to_world};
 use crate::raytrace::materials::Material;
 use crate::types::Float;
 
@@ -127,6 +128,38 @@ impl<F: Float> RayTraceable<F> for Sphere<F> {
     }
     fn emit(&self) -> Option<Vector3D<F>> {
         None
+    }
+
+    fn sample_light(&self) -> (Ray<F>, F) {
+        let _two = F::from(2u32).unwrap();
+
+        let normal = {
+            let theta = _two * F::PI() * F::sample_rand();
+            let phi = F::PI() * F::sample_rand();
+
+            Vector3D::new(
+                phi.cos(),
+                phi.sin()*theta.cos(),
+                phi.sin()*theta.sin())
+        };
+
+        let coords = self.inner.center() + normal.clone() * self.inner.radius();
+        let pdf = F::one() / self.area();
+
+        let local_direction = {
+            let x_1 = F::sample_rand();
+            let x_2 = F::sample_rand();
+            let z = F::one().abs_sub(x_1 * F::from(2).unwrap());
+            let r = (F::one() - z * z).sqrt();
+            let phi: F = F::from(2).unwrap() * F::PI() * x_2;
+
+            Vector3D::new(r * phi.cos(), r * phi.sin(), z)
+        };
+        let direction = to_world(local_direction, normal);
+
+        let ray = Ray::new(coords, direction);
+
+        (ray, pdf)
     }
 }
 
