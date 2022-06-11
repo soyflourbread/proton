@@ -11,6 +11,7 @@ pub use renderer::Renderer;
 pub use self::bvh::BVH;
 
 use crate::types::Float;
+use crate::vector::Vector3D;
 
 pub mod objects;
 pub mod materials;
@@ -35,4 +36,6 @@ pub trait PartialBounded<F: Float> {
 pub trait RayTraceable<F: Float>
 : LightInteractable<F> + Bounded<F> + PartialBounded<F> {
     fn name(&self) -> String;
+
+    fn emit(&self) -> Option<Vector3D<F>>;
 }

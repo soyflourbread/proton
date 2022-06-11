@@ -242,11 +242,11 @@ impl<F: Float> RenderThread<F> {
         let seed = F::sample_rand();
 
         if let Some((object, incident)) = self.intersect(ray) {
-            let processed = object.interact(incident, seed);
-            if processed.diff() != Vector3D::zero() {
-                return (true, processed.diff()); // Definitely hit light source
+            if let Some(diff) = object.emit() {
+                return (true, diff); // Definitely hit light source
             }
 
+            let processed = object.interact(incident, seed);
             let mut l_x: Vector3D<F> = Vector3D::zero();
 
             if seed < self.rr {

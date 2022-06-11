@@ -1,14 +1,12 @@
 use crate::raytrace::{Incident, ProcessedIncident};
-use crate::raytrace::incident::{BRDFIncident, RefractIncident, EmitIncident};
+use crate::raytrace::incident::{BRDFIncident, RefractIncident};
 use crate::types::Float;
 use crate::vector::Vector3D;
 
 mod diffuse;
-mod light;
 mod refract;
 
 pub use diffuse::Diffuse;
-pub use light::Light;
 pub use refract::Refract;
 
 pub trait Material<F: Float> {
@@ -17,10 +15,6 @@ pub trait Material<F: Float> {
         incident: Incident<F>,
         seed: F,
     ) -> ProcessedIncident<F>;
-}
-
-pub trait Emitter<F: Float> {
-    fn emit(&self, incident: &Incident<F>) -> EmitIncident<F>;
 }
 
 pub trait BRDFReflector<F: Float> {

@@ -1,9 +1,9 @@
-use proton::raytrace::objects::{Mesh, Sphere};
+use proton::raytrace::objects::{Light, Mesh, Sphere};
 use proton::raytrace::{Bounded, Ray, RayTraceable, Renderer, Scene, SceneGenerator};
 use proton::vector::Vector3D;
 
 use std::sync::Arc;
-use proton::raytrace::materials::{Diffuse, Light, Refract};
+use proton::raytrace::materials::{Diffuse, Refract};
 
 type Vector3f = Vector3D<f64>;
 
@@ -15,7 +15,7 @@ impl SceneGenerator<f64> for PracticalSceneGenerator {
             "cornellbox/floor.obj".to_string(),
             Box::new(Diffuse::new(
                 Vector3f::new(0.725, 0.71, 0.68),
-            ))
+            )),
         );
 
         // let short_box = Mesh::new(
@@ -32,7 +32,7 @@ impl SceneGenerator<f64> for PracticalSceneGenerator {
             "cornellbox/tallbox.obj".to_string(),
             Box::new(Diffuse::new(
                 Vector3f::new(0.725, 0.71, 0.68),
-            ))
+            )),
         );
 
         let left_wall = Mesh::new(
@@ -48,13 +48,16 @@ impl SceneGenerator<f64> for PracticalSceneGenerator {
             )),
         );
 
-        let light = Mesh::new(
-            "cornellbox/light.obj".to_string(),
-            Box::new(Light::new(
-                Vector3f::new(0.747 + 0.058, 0.747 + 0.258, 0.747) * 8.0
-                    + Vector3f::new(0.740 + 0.287, 0.740 + 0.160, 0.740) * 15.6
-                    + Vector3f::new(0.737 + 0.642, 0.737 + 0.159, 0.737) * 18.4,
+        let light = Light::new(
+            Box::new(Mesh::new(
+                "cornellbox/light.obj".to_string(),
+                Box::new(Diffuse::new(
+                    Vector3f::new(0.14, 0.45, 0.091),
+                )),
             )),
+            Vector3f::new(0.747 + 0.058, 0.747 + 0.258, 0.747) * 8.0
+                + Vector3f::new(0.740 + 0.287, 0.740 + 0.160, 0.740) * 15.6
+                + Vector3f::new(0.737 + 0.642, 0.737 + 0.159, 0.737) * 18.4,
         );
 
         Scene {

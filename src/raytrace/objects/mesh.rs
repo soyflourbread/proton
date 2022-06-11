@@ -198,5 +198,9 @@ impl<F: Float> RayTraceable<F> for Mesh<F> {
     fn name(&self) -> String {
         self.name.clone()
     }
+
+    fn emit(&self) -> Option<Vector3D<F>> {
+        None
+    }
 }
 

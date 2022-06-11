@@ -1,5 +1,5 @@
 use crate::raytrace::{Incident, ProcessedIncident};
-use crate::raytrace::incident::{BRDFIncident, EmitIncident};
+use crate::raytrace::incident::BRDFIncident;
 use crate::raytrace::materials::{Refractor, Material};
 use crate::types::Float;
 use crate::vector::Vector3D;
@@ -72,9 +72,6 @@ impl<F: Float> Material<F> for Refract<F> {
         ProcessedIncident::from_refract(
             incident,
             refract,
-            EmitIncident {
-                diff: Vector3D::zero(),
-            },
         )
     }
 }

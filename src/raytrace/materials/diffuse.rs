@@ -1,5 +1,4 @@
 use crate::raytrace::{Incident, ProcessedIncident};
-use crate::raytrace::incident::EmitIncident;
 use crate::raytrace::materials::{BRDFReflector, Material};
 use crate::types::Float;
 use crate::vector::Vector3D;
@@ -108,9 +107,6 @@ impl<F: Float> Material<F> for Diffuse<F> {
         ProcessedIncident::from_brdf(
             incident,
             brdf,
-            EmitIncident {
-                diff: Vector3D::zero(),
-            },
         )
     }
 }

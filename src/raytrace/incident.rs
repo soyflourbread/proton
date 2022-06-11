@@ -10,6 +10,8 @@ pub struct Incident<F: Float> {
 
     w_i: Vector3D<F>,
     from_inside: bool,
+
+    emit: Vector3D<F>,
 }
 
 impl<F: Float> Incident<F> {
@@ -24,6 +26,7 @@ impl<F: Float> Incident<F> {
             distance,
             w_i,
             from_inside,
+            emit: Vector3D::zero(),
         }
     }
 }
@@ -75,16 +78,10 @@ pub enum InteractIncident<F: Float> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct EmitIncident<F: Float> {
-    pub diff: Vector3D<F>,
-}
-
-#[derive(Debug, Clone, Copy)]
 pub struct ProcessedIncident<F: Float> {
     inner: Incident<F>,
 
     interact: InteractIncident<F>,
-    emit: EmitIncident<F>,
 }
 
 impl<F: Float> ProcessedIncident<F> {
@@ -101,10 +98,6 @@ impl<F: Float> ProcessedIncident<F> {
                 Vector3D::one() // TODO: does russian roulette ensure this?
             }
         }
-    }
-
-    pub fn diff(&self) -> Vector3D<F> {
-        self.emit.diff
     }
 
     pub fn next_ray(&self) -> Ray<F> {
@@ -124,32 +117,31 @@ impl<F: Float> ProcessedIncident<F> {
                 )
             }
         }
-
     }
 }
 
 impl<F: Float> ProcessedIncident<F> {
-    pub fn from_brdf(inner: Incident<F>,
-               brdf: BRDFIncident<F>,
-               emit: EmitIncident<F>) -> Self {
+    pub fn from_brdf(
+        inner: Incident<F>,
+        brdf: BRDFIncident<F>,
+    ) -> Self {
         let interact = InteractIncident::Reflect(brdf);
 
         Self {
             inner,
             interact,
-            emit,
         }
     }
 
-    pub fn from_refract(inner: Incident<F>,
-                     refract: RefractIncident<F>,
-                     emit: EmitIncident<F>) -> Self {
+    pub fn from_refract(
+        inner: Incident<F>,
+        refract: RefractIncident<F>,
+    ) -> Self {
         let interact = InteractIncident::Refract(refract);
 
         Self {
             inner,
             interact,
-            emit,
         }
     }
 }

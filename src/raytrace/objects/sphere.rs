@@ -121,5 +121,9 @@ impl<F: Float> RayTraceable<F> for Sphere<F> {
     fn name(&self) -> String {
         "sphere".to_string()
     }
+
+    fn emit(&self) -> Option<Vector3D<F>> {
+        None
+    }
 }
 
