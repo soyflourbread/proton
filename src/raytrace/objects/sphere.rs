@@ -1,6 +1,7 @@
 use num::traits::real::Real;
 use crate::vector::Vector3D;
-use crate::raytrace::{Incident, Ray, RayTraceable, ProcessedIncident, PartialBounded, Bounded, LightInteractable, to_world};
+use crate::raytrace::{Incident, Ray, ProcessedIncident, to_world};
+use crate::raytrace::objects::{Bounded, LightInteractable, LightSample, PartialBounded, RayTraceable};
 use crate::raytrace::materials::Material;
 use crate::types::Float;
 
@@ -150,7 +151,11 @@ impl<F: Float> RayTraceable<F> for Sphere<F> {
         None
     }
 
-    fn sample_light(&self) -> (Ray<F>, F) {
+    fn focus(&self) -> bool {
+        self.material.focus()
+    }
+
+    fn sample_position(&self) -> (Vector3D<F>, Vector3D<F>, F) {
         let _two = F::from(2u32).unwrap();
 
         let normal = {
@@ -164,22 +169,25 @@ impl<F: Float> RayTraceable<F> for Sphere<F> {
         };
 
         let coords = self.inner.center() + normal.clone() * self.inner.radius();
-        let pdf = F::one() / self.area();
+        let position_pdf = F::one() / self.area();
 
+        (coords, normal, position_pdf)
+    }
+
+    fn sample_direction(&self, coords: Vector3D<F>, normal: Vector3D<F>) -> (Vector3D<F>, F) {
         let local_direction = {
             let x_1 = F::sample_rand();
             let x_2 = F::sample_rand();
-            let z = F::one().abs_sub(x_1 * F::from(2).unwrap());
+            let z = F::one().abs_sub(x_1 * F::from(2u32).unwrap());
             let r = (F::one() - z * z).sqrt();
-            let phi: F = F::from(2).unwrap() * F::PI() * x_2;
+            let phi: F = F::from(2u32).unwrap() * F::PI() * x_2;
 
             Vector3D::new(r * phi.cos(), r * phi.sin(), z)
         };
-        let direction = to_world(local_direction, normal);
+        let direction = to_world(local_direction, normal.clone());
+        let direction_pdf = F::from(0.5 as f64).unwrap() * F::FRAC_1_PI();
 
-        let ray = Ray::new(coords, direction);
-
-        (ray, pdf)
+        (direction, direction_pdf)
     }
 }
 

@@ -1,4 +1,5 @@
-use crate::raytrace::{Bounded, Incident, LightInteractable, PartialBounded, ProcessedIncident, Ray, RayTraceable};
+use crate::raytrace::{Incident, ProcessedIncident, Ray};
+use crate::raytrace::objects::{Bounded, LightInteractable, LightSample, PartialBounded, RayTraceable};
 use crate::types::Float;
 use crate::vector::Vector3D;
 
@@ -65,7 +66,15 @@ impl<F: Float> RayTraceable<F> for Light<F> {
         Some(self.diff)
     }
 
-    fn sample_light(&self) -> (Ray<F>, F) {
-        self.inner.sample_light()
+    fn focus(&self) -> bool {
+        self.inner.focus()
+    }
+
+    fn sample_position(&self) -> (Vector3D<F>, Vector3D<F>, F) {
+        self.inner.sample_position()
+    }
+
+    fn sample_direction(&self, coords: Vector3D<F>, normal: Vector3D<F>) -> (Vector3D<F>, F) {
+        self.inner.sample_direction(coords, normal)
     }
 }

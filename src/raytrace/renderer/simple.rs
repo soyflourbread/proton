@@ -1,4 +1,6 @@
-use crate::raytrace::{Incident, ProcessedIncident, Ray, RayTraceable, Scene, SceneGenerator};
+use crate::raytrace::{Incident, ProcessedIncident, Ray, Scene, SceneGenerator};
+use crate::raytrace::objects::RayTraceable;
+
 use crate::types::Float;
 use crate::vector::Vector3D;
 use crate::raytrace::renderer::Dimensions;
@@ -8,6 +10,7 @@ use std::thread::JoinHandle;
 
 use indicatif::ProgressBar;
 use num::traits::real::Real;
+use crate::raytrace::tree::{Photon, TheTree};
 
 pub struct SimpleRenderer<F: Float> {
     dims: Dimensions,
@@ -21,6 +24,10 @@ pub struct SimpleRenderer<F: Float> {
 
     thread_count: u32,
 
+    the_tree: TheTree<F>,
+    k: u32,
+    max_radius: F,
+
     progress_bar: ProgressBar,
 }
 
@@ -32,6 +39,9 @@ impl<F: Float> SimpleRenderer<F> {
         rr: F,
         scene_gen: Arc<dyn SceneGenerator<F>>,
         thread_count: u32,
+        the_tree: TheTree<F>,
+        k: u32,
+        max_radius: F,
         progress_bar: ProgressBar,
     ) -> Self {
         Self {
@@ -41,6 +51,9 @@ impl<F: Float> SimpleRenderer<F> {
             rr,
             scene_gen,
             thread_count,
+            the_tree,
+            k,
+            max_radius,
             progress_bar,
         }
     }
@@ -57,6 +70,9 @@ impl<F: Float> SimpleRenderer<F> {
             self.scene_gen.clone(),
             self.spp,
             self.thread_count,
+            self.the_tree.clone(),
+            self.k,
+            self.max_radius,
             self.progress_bar.clone(),
         )
     }
@@ -70,11 +86,15 @@ fn par_render<F: Float>(
     scene_gen: Arc<dyn SceneGenerator<F>>,
     spp: u32,
     thread_count: u32,
+    the_tree: TheTree<F>,
+    k: u32,
+    max_radius: F,
     progress_bar: ProgressBar,
 ) -> Vec<(u8, u8, u8)> {
     let mut thread_handle_vec: Vec<JoinHandle<Vec<(u8, u8, u8)>>> = Vec::new();
 
     for t in 0..thread_count {
+        let the_tree = the_tree.clone();
         let progress_bar = progress_bar.clone();
         let scene_gen = scene_gen.clone();
 
@@ -88,6 +108,9 @@ fn par_render<F: Float>(
                 spp,
                 t,
                 thread_count,
+                the_tree,
+                k,
+                max_radius,
                 progress_bar,
             )
         });
@@ -119,6 +142,10 @@ struct RenderThread<F: Float> {
     pub lightsources: Vec<Arc<dyn RayTraceable<F>>>,
 
     pub total_illumination_area: F,
+
+    the_tree: TheTree<F>,
+    k: u32,
+    max_radius: F,
 }
 
 fn render_thread<F: Float>(
@@ -130,20 +157,21 @@ fn render_thread<F: Float>(
     spp: u32,
     t: u32,
     thread_count: u32,
+    the_tree: TheTree<F>,
+    k: u32,
+    max_radius: F,
     progress_bar: ProgressBar,
 ) -> Vec<(u8, u8, u8)> {
     let mut lightsources = Vec::new();
     for object in scene.objects.clone() {
-        if let Some(emit) = object.emit() { // Is light source
+        if let Some(_) = object.emit() { // Is light source
             lightsources.push(object);
         }
     }
 
     let mut total_illumination_area = F::zero();
     for lightsource in lightsources.clone() {
-        if let Some(emit) = lightsource.emit() { // Is light source
-            total_illumination_area = total_illumination_area + lightsource.area();
-        }
+        total_illumination_area = total_illumination_area + lightsource.area();
     }
 
     let render_thread = RenderThread {
@@ -155,6 +183,9 @@ fn render_thread<F: Float>(
         objects: scene.objects,
         lightsources,
         total_illumination_area,
+        the_tree,
+        k,
+        max_radius,
     };
 
     let thread_rows = width / thread_count;
@@ -294,9 +325,8 @@ impl<F: Float> RenderThread<F> {
     ) -> Vector3D<F> {
         let lightsource = self.sample_lightsource(seed);
         let emit = lightsource.emit().expect("the sun!no!!!!!");
-        let (ray, light_pdf_area) = lightsource.sample_light();
+        let (coords, normal, light_pdf_area) = lightsource.sample_position();
 
-        let coords = ray.origin();
         let w_r = (coords - incident.coords()).norm();
         if w_r.dot(incident.normal()) < F::zero() {
             // println!("attempt to sample from inside");
@@ -340,6 +370,60 @@ impl<F: Float> RenderThread<F> {
         processed.multiplier() * self.calc(next_object, next_incident)
     }
 
+    fn calc_caustics(
+        &self,
+        object: Arc<dyn RayTraceable<F>>,
+        incident: &Incident<F>,
+        seed: F,
+    ) -> Vector3D<F> {
+        let coords = incident.coords();
+        // Do k-NN on the tree
+        if !self.the_tree.within_radius(coords, self.max_radius) {
+            return Vector3D::zero();
+        }
+
+        let (photons, r) = self.the_tree.knn(coords, self.k);
+        // println!("r: {}", r.to_f64().unwrap());
+        if r > self.max_radius {
+            return Vector3D::zero();
+        }
+
+        let mut l_x: Vector3D<F> = Vector3D::zero();
+
+        for photon in photons {
+            let diff = photon.diff();
+            if diff.magnitude() < F::from(0.1f32).unwrap() {
+                println!("diff incredibly small {}", diff.magnitude().to_f64().unwrap());
+            }
+
+            let incident = Incident::new(
+                photon.coords(),
+                incident.normal(),
+                F::zero(),
+                incident.w_i(),
+                false,
+            );
+            let pdf = F::PI() * r * r;
+            let processed = object.interact_predetermined(
+                incident,
+                photon.w_i(), // Outgoing
+                pdf,
+                seed);
+
+            let f_r = processed.f_r();
+            if f_r == Vector3D::zero() { // Somehow
+                continue; // Pass to next photon
+            }
+            // println!("f_r not zero: {}", f_r.x.to_f64().unwrap());
+
+            // TODO: Can we use multiplier directly?
+            let local_irr = processed.multiplier() * diff;
+            l_x = local_irr + l_x;
+        }
+
+        l_x
+    }
+
     fn calc(
         &self,
         object: Arc<dyn RayTraceable<F>>,
@@ -353,6 +437,7 @@ impl<F: Float> RenderThread<F> {
 
         let w_0 = F::from(0.7f32).unwrap();
         let w_1 = F::from(0.3f32).unwrap();
+        let w_2 = F::from(0.5f32).unwrap();
 
         let processed = object.interact(incident, seed);
         let mut l_x: Vector3D<F> = Vector3D::zero();
@@ -362,6 +447,12 @@ impl<F: Float> RenderThread<F> {
             &incident,
             seed,
         ) * w_0;
+
+        l_x = l_x + self.calc_caustics(
+            object.clone(),
+            &incident,
+            seed,
+        ) * w_2;
 
         if let Some((
                         next_object,

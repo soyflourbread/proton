@@ -1,5 +1,3 @@
-use std::sync::Arc;
-use crate::raytrace::RayTraceable;
 use crate::types::Float;
 use crate::vector::Vector3D;
 

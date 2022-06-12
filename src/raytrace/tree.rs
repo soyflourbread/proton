@@ -67,6 +67,19 @@ impl<F: Float> TheTree<F> {
         }
     }
 
+    pub fn within_radius(&self, coords: Vector3D<F>, radius: F) -> bool {
+        let found = self.inner.within_radius(
+            &[
+                coords.x.to_f64().unwrap(),
+                coords.y.to_f64().unwrap(),
+                coords.z.to_f64().unwrap(),
+            ],
+            radius.to_f64().unwrap(),
+        );
+
+        !found.is_empty()
+    }
+
     pub fn knn(&self, coords: Vector3D<F>, k: u32) -> (Vec<Photon<F>>, F) {
         let found = self.inner.nearests(
             &[

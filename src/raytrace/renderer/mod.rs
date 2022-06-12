@@ -1,5 +1,5 @@
 mod simple;
-mod photon;
+mod cast;
 
 use crate::raytrace::SceneGenerator;
 use crate::types::Float;
@@ -52,34 +52,20 @@ impl<F: Float> Renderer<F> {
 }
 
 impl<F: Float> Renderer<F> {
-    pub fn render_photon(&self, eye_pos: Vector3D<F>) {
-        let mut im = image::DynamicImage::new_rgb8(self.dims.width, self.dims.height);
-
-        let photon_renderer = photon::PhotonRenderer::new(
-            self.dims,
-            self.fov,
+    pub fn render(&self, eye_pos: Vector3D<F>) {
+        let start = std::time::Instant::now();
+        let the_tree = cast::gen_photon_map(
             self.rr,
+            10000000, // 10m photon, a portion wasted
             self.scene_gen.clone(),
             self.thread_count,
-            self.progress_bar.clone(),
         );
+        let duration = start.elapsed();
+        println!("Time elapsed in gen_photon_map() is: {:?}", duration);
 
-        let res_vec = photon_renderer.render(eye_pos);
-
-        for w in 0..self.dims.width {
-            for h in 0..self.dims.height {
-                let (r, g, b) = res_vec[(w * self.dims.height + h) as usize];
-                im.put_pixel(w, h, image::Rgba::from([r, g, b, 255]));
-            }
-        }
-
-        self.progress_bar.finish();
-        im.save("binary-photon.png").unwrap();
-    }
-
-    pub fn render(&self, eye_pos: Vector3D<F>) {
         let mut im = image::DynamicImage::new_rgb8(self.dims.width, self.dims.height);
 
+        let start = std::time::Instant::now();
         let simple_renderer = simple::SimpleRenderer::new(
             self.dims,
             self.fov,
@@ -87,6 +73,9 @@ impl<F: Float> Renderer<F> {
             self.rr,
             self.scene_gen.clone(),
             self.thread_count,
+            the_tree,
+            8,
+            F::from(10u32).unwrap(),
             self.progress_bar.clone(),
         );
 
@@ -101,5 +90,8 @@ impl<F: Float> Renderer<F> {
 
         self.progress_bar.finish();
         im.save("binary.png").unwrap();
+
+        let duration = start.elapsed();
+        println!("Time elapsed in render() is: {:?}", duration);
     }
 }

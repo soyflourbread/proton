@@ -1,4 +1,4 @@
-use crate::raytrace::RayTraceable;
+use crate::raytrace::objects::RayTraceable;
 use crate::types::Float;
 
 use std::sync::Arc;

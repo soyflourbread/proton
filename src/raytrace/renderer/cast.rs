@@ -1,7 +1,8 @@
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
-use crate::raytrace::{Incident, Ray, RayTraceable, Scene, SceneGenerator};
+use crate::raytrace::{Incident, Ray, Scene, SceneGenerator};
+use crate::raytrace::objects::RayTraceable;
 use crate::raytrace::tree::{Photon, TheTree};
 use crate::types::Float;
 use crate::vector::Vector3D;
@@ -22,6 +23,22 @@ fn sample_lightsource<F: Float>(
     }
 
     panic!("faulty seed or illumination area")
+}
+
+fn sample_focus<F: Float>(
+    focuses: Vec<Arc<dyn RayTraceable<F>>>,
+    seed: F,
+) -> Arc<dyn RayTraceable<F>> {
+    let sample_count = focuses.len();
+    let mut chosen_sample = F::from(sample_count).unwrap() * seed;
+    for focus in focuses {
+        chosen_sample = chosen_sample - F::one();
+        if chosen_sample <= F::zero() { // The chosen one
+            return focus;
+        }
+    }
+
+    panic!("faulty seed or focus")
 }
 
 pub fn gen_photon_map<F: Float>(
@@ -46,6 +63,14 @@ pub fn gen_photon_map<F: Float>(
         }
     }
     println!("Total illum area: {}", total_illumination_area.to_f64().unwrap());
+
+    let mut focuses = Vec::new();
+    for object in scene.objects.clone() {
+        if object.focus() { // Is light source
+            focuses.push(object);
+        }
+    }
+    println!("Total focus objects: {}", focuses.len());
 
     let photon_per_thread = photon_count / thread_count;
     let mut thread_handle_vec: Vec<JoinHandle<Vec<Photon<F>>>> = Vec::new();
@@ -104,6 +129,13 @@ fn cast_thread<F: Float>(
         }
     }
 
+    let mut focuses = Vec::new();
+    for object in scene.objects.clone() {
+        if object.focus() { // Is light source
+            focuses.push(object);
+        }
+    }
+
     let cast_thread = CastThread {
         rr,
         objects: scene.objects,
@@ -119,15 +151,26 @@ fn cast_thread<F: Float>(
             lightsource_vec.clone(),
             total_illumination_area,
             seed);
-        let (ray, pdf) = lightsource.sample_light();
+        let focus = sample_focus(
+            focuses.clone(),
+            seed,
+        );
+        let light_sample = lightsource.sample_light();
+        let ray = light_sample.ray;
+        if !focus.partial_hit(&ray) {
+            continue;
+        }
+
+        let pdf = light_sample.position_pdf * light_sample.direction_pdf;
+        let normal = light_sample.normal;
+
         let diff = lightsource.emit().unwrap();
 
-        let _two = F::from(2u32).unwrap();
         let diff = diff / pdf;
         let diff = diff / F::from(photon_count).unwrap();
-        let diff = diff * _two *  F::PI();
+        let diff = diff * ray.direction().dot(normal).abs();
 
-        cast_thread.cast_ray(&ray, diff, &mut photons);
+        cast_thread.cast_ray(&ray, diff, &mut photons, false);
     }
 
     photons
@@ -168,7 +211,13 @@ impl<F: Float> CastThread<F> {
         ray: &Ray<F>,
         diff: Vector3D<F>,
         photons: &mut Vec<Photon<F>>,
+        prev_focus: bool,
     ) {
+        if diff.magnitude() < F::from(0.1).unwrap() {
+            // Too small to be counted
+            return;
+        }
+
         let seed = F::sample_rand();
 
         if let Some((object, incident)) = self.intersect(ray) {
@@ -177,16 +226,17 @@ impl<F: Float> CastThread<F> {
                 incident.w_i(), // Inverse of incoming direction
                 diff, // Do not multiply f_r
             );
-            photons.push(photon);
+            if prev_focus && !object.focus() {
+                // Transitioned from refract to diffuse
+                photons.push(photon);
+            }
 
             if seed < self.rr { // Might just stop
                 let processed = object.interact(incident, seed / self.rr);
 
                 let next_ray = processed.next_ray();
-                let multiplier = processed.f_r()
-                    * F::PI()
-                    * incident.w_i().dot(incident.normal());
-                self.cast_ray(&next_ray, diff, photons); // TODO: diff faulty?
+                let multiplier = processed.rev_multiplier();
+                self.cast_ray(&next_ray, diff  * multiplier, photons, object.focus()); // TODO: diff faulty?
             }
         }
     }

@@ -1,6 +1,7 @@
-use crate::raytrace::{Bounded, BVH, Incident, LightInteractable, PartialBounded, ProcessedIncident, Ray, RayTraceable};
+use crate::raytrace::{BVH, Incident, ProcessedIncident, Ray};
 use crate::raytrace::bvh::GenericBound;
 use crate::raytrace::materials::Material;
+use crate::raytrace::objects::{Bounded, LightInteractable, LightSample, PartialBounded, RayTraceable};
 
 use crate::types::Float;
 use crate::vector::Vector3D;
@@ -238,13 +239,39 @@ impl<F: Float> RayTraceable<F> for Mesh<F> {
         None
     }
 
-    fn sample_light(&self) -> (Ray<F>, F) {
+    fn focus(&self) -> bool {
+        self.material.focus()
+    }
+
+    fn sample_position(&self) -> (Vector3D<F>, Vector3D<F>, F) {
         let triangle = self.bound.sample_triangle();
 
-        let (ray, _) = triangle.sample_light();
-        let pdf = F::one() / self.area();
+        let (coords, _) = triangle.sample_location();
+        let position_pdf = F::one() / self.area();
 
-        (ray, pdf)
+        (coords, triangle.normal(), position_pdf)
+    }
+
+    fn sample_direction(&self, coords: Vector3D<F>, normal: Vector3D<F>) -> (Vector3D<F>, F) {
+        let triangle = self.bound.sample_triangle();
+        triangle.sample_direction()
+    }
+
+    fn sample_light(&self) -> LightSample<F> {
+        let triangle = self.bound.sample_triangle();
+
+        let (coords, _) = triangle.sample_location();
+        let position_pdf = F::one() / self.area();
+        let (direction, direction_pdf) = triangle.sample_direction();
+
+        let ray = Ray::new(coords, direction);
+
+        LightSample {
+            ray,
+            normal: triangle.normal(),
+            position_pdf,
+            direction_pdf,
+        }
     }
 }
 

@@ -48,6 +48,10 @@ impl<F: Float> Triangle<F> {
         (self.v0.clone(), self.v1.clone(), self.v2.clone())
     }
 
+    pub fn normal(&self) -> Vector3D<F> {
+        self.normal
+    }
+
     pub fn area(&self) -> F {
         self.area
     }
@@ -106,26 +110,29 @@ impl<F: Float> Triangle<F> {
         self.hit_impl(ray, false)
     }
 
-    pub fn sample_light(&self) -> (Ray<F>, F) {
+    pub fn sample_location(&self) -> (Vector3D<F>, F) { // normal is known
         let x = F::sample_rand().sqrt();
         let y = F::sample_rand();
 
         let coords = self.v0 * (F::one() - x) + self.v1 * (x * (F::one() - y)) + self.v2 * (x * y);
         let pdf = F::one() / self.area;
 
+        (coords, pdf)
+    }
+
+    pub fn sample_direction(&self) -> (Vector3D<F>, F) {
         let local_direction = {
             let x_1 = F::sample_rand();
             let x_2 = F::sample_rand();
-            let z = F::one().abs_sub(x_1 * F::from(2).unwrap());
+            let z = F::one().abs_sub(x_1 * F::from(2u32).unwrap());
             let r = (F::one() - z * z).sqrt();
-            let phi: F = F::from(2).unwrap() * F::PI() * x_2;
+            let phi: F = F::from(2u32).unwrap() * F::PI() * x_2;
 
             Vector3D::new(r * phi.cos(), r * phi.sin(), z)
         };
         let direction = to_world(local_direction, self.normal);
+        let pdf = F::from(0.5 as f64).unwrap() * F::FRAC_1_PI();
 
-        let ray = Ray::new(coords, direction);
-
-        (ray, pdf)
+        (direction, pdf)
     }
 }

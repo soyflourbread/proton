@@ -59,6 +59,7 @@ pub struct BRDFIncident<F: Float> {
     pub pdf: F,
 
     pub multiplier: Vector3D<F>,
+    pub rev_multiplier: Vector3D<F>,
 }
 
 // Retract might be full reflection
@@ -98,6 +99,17 @@ impl<F: Float> ProcessedIncident<F> {
         match self.interact {
             InteractIncident::Reflect(brdf) => {
                 brdf.multiplier
+            }
+            InteractIncident::Refract(_) => {
+                Vector3D::one() // TODO: does russian roulette ensure this?
+            }
+        }
+    }
+
+    pub fn rev_multiplier(&self) -> Vector3D<F> {
+        match self.interact {
+            InteractIncident::Reflect(brdf) => {
+                brdf.rev_multiplier
             }
             InteractIncident::Refract(_) => {
                 Vector3D::one() // TODO: does russian roulette ensure this?

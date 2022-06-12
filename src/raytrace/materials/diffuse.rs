@@ -48,6 +48,8 @@ impl<F: Float> BRDFReflector<F> for Diffuse<F> {
 
 impl<F: Float> Diffuse<F> {
     fn sample(&self, normal: Vector3D<F>) -> Vector3D<F> {
+        // let x_1 = F::sample_rand() * F::from(0.2).unwrap() + F::from(0.05).unwrap();
+        // let x_2 = F::sample_rand() * F::from(0.2).unwrap() + F::from(0.05).unwrap();
         let x_1 = F::sample_rand();
         let x_2 = F::sample_rand();
         let z = F::one().abs_sub(x_1 * F::from(2).unwrap());
@@ -109,5 +111,9 @@ impl<F: Float> Material<F> for Diffuse<F> {
             incident,
             brdf,
         )
+    }
+
+    fn focus(&self) -> bool {
+        false
     }
 }

@@ -22,6 +22,8 @@ pub trait Material<F: Float> {
         pdf: F,
         seed: F,
     ) -> ProcessedIncident<F>;
+
+    fn focus(&self) -> bool;
 }
 
 pub trait BRDFReflector<F: Float> {
@@ -50,15 +52,17 @@ pub trait BRDFReflector<F: Float> {
         let normal = incident.normal();
 
         let f_r = self.f_r(coords, w_i, w_r, normal, seed);
-
-        let multiplier = if pdf == F::zero() {
+        let mut multiplier = if pdf == F::zero() {
             Vector3D::new(F::one(), F::one(), F::one())
         } else {
             f_r * w_r.dot(normal) / pdf
         };
-        if multiplier.x < F::zero() {
-            println!("negative multiplier");
-        }
+        let rev_f_r = self.f_r(coords, w_r, w_i, normal, seed);
+        let mut rev_multiplier = if pdf == F::zero() {
+            Vector3D::new(F::one(), F::one(), F::one())
+        } else {
+            rev_f_r * w_i.dot(normal) / pdf
+        };
 
         BRDFIncident {
             f_r,
@@ -66,6 +70,7 @@ pub trait BRDFReflector<F: Float> {
             pdf,
 
             multiplier,
+            rev_multiplier,
         }
     }
 }
