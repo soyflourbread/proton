@@ -56,11 +56,11 @@ impl SceneGenerator<RF> for PracticalSceneGenerator {
             20.0,
             Box::new(Refract::new(1.2)),
         );
-        // let the_ball = Sphere::new(
-        //     Vector3f::new(278.0, 100.0, 279.5),
-        //     60.0,
-        //     Box::new(Refract::new(1.2)),
-        // );
+        let the_bigger_ball = Sphere::new(
+            Vector3f::new(400.0, 100.0, 100.0),
+            80.0,
+            Box::new(Refract::new(1.2)),
+        );
 
         let the_sun = Light::new(
             Box::new(Mesh::new(
@@ -92,7 +92,7 @@ impl SceneGenerator<RF> for PracticalSceneGenerator {
                 Arc::new(floor),
                 Arc::new(short_box), Arc::new(tall_box),
                 Arc::new(left_wall), Arc::new(right_wall),
-                Arc::new(the_ball), Arc::new(the_smaller_ball),
+                Arc::new(the_ball), Arc::new(the_smaller_ball), Arc::new(the_bigger_ball),
                 Arc::new(the_sun),
             ]
         }
@@ -106,5 +106,7 @@ fn main() {
 
     let eye_pos = Vector3f::new(278.0, 273.0, -800.0);
 
-    renderer.render(eye_pos);
+    let im = renderer.render(eye_pos);
+
+    im.save("binary.png");
 }

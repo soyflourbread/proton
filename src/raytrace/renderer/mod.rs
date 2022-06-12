@@ -52,7 +52,7 @@ impl<F: Float> Renderer<F> {
 }
 
 impl<F: Float> Renderer<F> {
-    pub fn render(&self, eye_pos: Vector3D<F>) {
+    pub fn render(&self, eye_pos: Vector3D<F>) -> image::DynamicImage {
         let start = std::time::Instant::now();
         let the_tree = cast::gen_photon_map(
             self.rr,
@@ -89,9 +89,10 @@ impl<F: Float> Renderer<F> {
         }
 
         self.progress_bar.finish();
-        im.save("binary.png").unwrap();
 
         let duration = start.elapsed();
         println!("Time elapsed in render() is: {:?}", duration);
+
+        im
     }
 }

@@ -323,6 +323,10 @@ impl<F: Float> RenderThread<F> {
         incident: &Incident<F>,
         seed: F,
     ) -> Vector3D<F> {
+        if object.focus() { // Skip direct light on transparent object for now
+            return Vector3D::zero();
+        }
+
         let lightsource = self.sample_lightsource(seed);
         let emit = lightsource.emit().expect("the sun!no!!!!!");
         let (coords, normal, light_pdf_area) = lightsource.sample_position();
