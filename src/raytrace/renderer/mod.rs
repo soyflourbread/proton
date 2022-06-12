@@ -35,7 +35,8 @@ pub struct Renderer<F: Float> {
 impl<F: Float> Renderer<F> {
     pub fn new(
         width: u32, height: u32, fov: u32,
-        scene_gen: Arc<dyn SceneGenerator<F>>) -> Self {
+        scene_gen: Arc<dyn SceneGenerator<F>>,
+        thread_count: u32) -> Self {
         Self {
             dims: Dimensions {
                 width,
@@ -45,7 +46,7 @@ impl<F: Float> Renderer<F> {
             spp: 64,
             rr: F::from(0.8 as f64).unwrap(),
             scene_gen,
-            thread_count: 24,
+            thread_count,
             progress_bar: ProgressBar::new((width * height) as u64),
         }
     }

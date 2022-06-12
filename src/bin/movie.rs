@@ -4,6 +4,8 @@ use proton::raytrace::objects::{Bounded, LightInteractable, LightSample, Partial
 use proton::vector::Vector3D;
 
 use std::sync::Arc;
+use std::thread::JoinHandle;
+use image::DynamicImage;
 use proton::raytrace::materials::{Diffuse, Refract};
 
 type RF = f64;
@@ -171,21 +173,47 @@ impl SceneGenerator<RF> for MovieSceneGenerator {
 }
 
 fn main() {
-    for frame in 0..60 {
-        let scene_gen = Arc::new(
-            MovieSceneGenerator::new(
-                frame,
-                60,
-            )
-        );
-        let renderer: Renderer<f64> = Renderer::new(256, 256, 40, scene_gen);
-        // let renderer: Renderer<RF> = Renderer::new(1024, 1024, 40, scene_gen);
+    let total_frame = 60;
+    let renderer_thread_count = 8;
+    let frame_per_thread = total_frame / renderer_thread_count;
 
-        let eye_pos = Vector3f::new(278.0, 273.0, -800.0);
+    let mut thread_handle_vec: Vec<JoinHandle<()>> = Vec::new();
 
-        let im = renderer.render(eye_pos);
-        let path = format!("frames/{:02}.png", frame);
-        println!("Saving frame to {}", path);
-        im.save(path).unwrap();
+    for t in 0..renderer_thread_count {
+        let frame_start = t * frame_per_thread;
+        let frame_end = if t == renderer_thread_count - 1 {
+            total_frame
+        } else {
+            (t + 1) * frame_per_thread
+        };
+
+        let handle = std::thread::spawn(move || {
+            for frame in frame_start..frame_end {
+                let scene_gen = Arc::new(
+                    MovieSceneGenerator::new(
+                        frame,
+                        60,
+                    )
+                );
+                // let renderer: Renderer<f64> = Renderer::new(256, 256, 40, scene_gen);
+                let renderer: Renderer<RF> = Renderer::new(
+                    2048, 2048, 40,
+                    scene_gen,
+                    4,
+                );
+
+                let eye_pos = Vector3f::new(278.0, 273.0, -800.0);
+
+                let im = renderer.render(eye_pos);
+                let path = format!("frames/{:02}.png", frame);
+                println!("Saving frame to {}", path);
+                im.save(path).unwrap();
+            }
+        });
+        thread_handle_vec.push(handle);
+    }
+
+    for thread in thread_handle_vec {
+        thread.join().expect("general error");
     }
 }
