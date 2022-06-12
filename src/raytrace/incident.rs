@@ -65,6 +65,7 @@ pub struct BRDFIncident<F: Float> {
 #[derive(Debug, Clone, Copy)]
 pub struct RefractIncident<F: Float> {
     pub w_r: Vector3D<F>,
+    pub flip: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -109,16 +110,31 @@ impl<F: Float> ProcessedIncident<F> {
 
         match self.interact {
             InteractIncident::Reflect(brdf) => {
-                Ray::new(
-                    self.inner.coords() + brdf.w_r * epsilon,
-                    brdf.w_r,
-                )
+                if self.inner.from_inside { // Still inside
+                    Ray::from_inside(
+                        self.inner.coords() + brdf.w_r * epsilon,
+                        brdf.w_r,
+                    )
+                } else { // Still outside
+                    Ray::new(
+                        self.inner.coords() + brdf.w_r * epsilon,
+                        brdf.w_r,
+                    )
+                }
             }
-            InteractIncident::Refract(retract) => {
-                Ray::new(
-                    self.inner.coords() + retract.w_r * epsilon,
-                    retract.w_r,
-                )
+            InteractIncident::Refract(refract) => {
+                let still_inside = self.inner.from_inside ^ refract.flip;
+                if still_inside { // Flipped to inside
+                    Ray::from_inside(
+                        self.inner.coords() + refract.w_r * epsilon,
+                        refract.w_r,
+                    )
+                } else { // Still outside
+                    Ray::new(
+                        self.inner.coords() + refract.w_r * epsilon,
+                        refract.w_r,
+                    )
+                }
             }
         }
     }

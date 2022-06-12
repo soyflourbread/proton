@@ -298,6 +298,10 @@ impl<F: Float> RenderThread<F> {
 
         let coords = ray.origin();
         let w_r = (coords - incident.coords()).norm();
+        if w_r.dot(incident.normal()) < F::zero() {
+            // println!("attempt to sample from inside");
+            return Vector3D::zero();
+        }
 
         let light_ray = Ray::new(
             incident.coords(),

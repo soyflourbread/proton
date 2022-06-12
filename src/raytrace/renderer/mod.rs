@@ -42,7 +42,7 @@ impl<F: Float> Renderer<F> {
                 height,
             },
             fov,
-            spp: 256,
+            spp: 64,
             rr: F::from(0.8 as f64).unwrap(),
             scene_gen,
             thread_count: 24,

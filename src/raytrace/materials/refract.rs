@@ -43,7 +43,7 @@ impl<F: Float> Refractor<F> for Refract<F> {
         mut normal: Vector3D<F>,
         inside: bool,
         seed: F,
-    ) -> Vector3D<F> {
+    ) -> (bool, Vector3D<F>) {
         let refraction_ratio = if inside { // Hit from inside
             self.index_of_coin
         } else { // Hit from outside
@@ -54,9 +54,9 @@ impl<F: Float> Refractor<F> for Refract<F> {
         let sin_theta = (F::one() - cos_theta * cos_theta).sqrt();
         let cannot_refract = refraction_ratio * sin_theta > F::one();
         if cannot_refract || reflectance(cos_theta, refraction_ratio) > seed {
-            reflect(-w_i, normal)
+            (false, reflect(-w_i, normal))
         } else {
-            refract(-w_i, normal, refraction_ratio)
+            (true, refract(-w_i, normal, refraction_ratio))
         }
     }
 }

@@ -61,11 +61,25 @@ impl SceneGenerator<RF> for PracticalSceneGenerator {
                 + Vector3f::new(0.737 + 0.642, 0.737 + 0.159, 0.737) * 18.4,
         );
 
+        // let the_ball = Sphere::new(
+        //     Vector3f::new(200.0, 220.0, 200.0),
+        //     40.0,
+        //     Box::new(Diffuse::new(
+        //         Vector3f::new(0.725, 0.71, 0.68),
+        //     )),
+        // );
+        let the_ball = Sphere::new(
+            Vector3f::new(180.0, 220.0, 200.0),
+            40.0,
+            Box::new(Refract::new(1.2)),
+        );
+
         Scene {
             objects: vec![
                 Arc::new(floor),
                 Arc::new(short_box), Arc::new(tall_box),
                 Arc::new(left_wall), Arc::new(right_wall),
+                Arc::new(the_ball),
                 Arc::new(light),
             ]
         }
@@ -81,8 +95,8 @@ fn main() {
 
     println!("Start rendering...");
     let start = std::time::Instant::now();
-    renderer.render(eye_pos);
-    // renderer.render_photon(eye_pos);
+    // renderer.render(eye_pos);
+    renderer.render_photon(eye_pos);
     let duration = start.elapsed();
     println!("Time elapsed in render() is: {:?}", duration);
 }

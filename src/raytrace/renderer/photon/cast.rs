@@ -183,8 +183,10 @@ impl<F: Float> CastThread<F> {
                 let processed = object.interact(incident, seed / self.rr);
 
                 let next_ray = processed.next_ray();
-                let multiplier = processed.multiplier();
-                self.cast_ray(&next_ray, diff * multiplier, photons); // TODO: diff faulty?
+                let multiplier = processed.f_r()
+                    * F::PI()
+                    * incident.w_i().dot(incident.normal());
+                self.cast_ray(&next_ray, diff, photons); // TODO: diff faulty?
             }
         }
     }

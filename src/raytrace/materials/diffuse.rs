@@ -88,12 +88,13 @@ impl<F: Float> Material<F> for Diffuse<F> {
         incident: Incident<F>,
         seed: F,
     ) -> ProcessedIncident<F> {
-        let brdf = self.reflect(&incident, seed);
+        let coords = incident.coords();
+        let w_i = incident.w_i();
+        let normal = incident.normal();
 
-        ProcessedIncident::from_brdf(
-            incident,
-            brdf,
-        )
+        let (w_r, pdf) = self.sample_reflected(coords, w_i, normal, seed);
+
+        self.interact_predetermined(incident, w_r, pdf, seed)
     }
 
     fn interact_predetermined(

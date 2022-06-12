@@ -68,21 +68,6 @@ pub trait BRDFReflector<F: Float> {
             multiplier,
         }
     }
-
-    fn reflect(&self, incident: &Incident<F>, seed: F) -> BRDFIncident<F> {
-        let coords = incident.coords();
-        let w_i = incident.w_i();
-        let normal = incident.normal();
-
-        let (w_r, pdf) = self.sample_reflected(coords, w_i, normal, seed);
-
-        self.reflect_predetermined(
-            incident,
-            w_r,
-            pdf,
-            seed
-        )
-    }
 }
 
 pub trait Refractor<F: Float> {
@@ -92,17 +77,18 @@ pub trait Refractor<F: Float> {
         w_i: Vector3D<F>, normal: Vector3D<F>,
         inside: bool,
         seed: F,
-    ) -> Vector3D<F>;
+    ) -> (bool, Vector3D<F>);
     fn refract(&self, incident: &Incident<F>, seed: F) -> RefractIncident<F> {
         let coords = incident.coords();
         let w_i = incident.w_i();
         let normal = incident.normal();
         let inside = incident.inside();
 
-        let w_r = self.sample_refracted(coords, w_i, normal, inside, seed);
+        let (flip, w_r) = self.sample_refracted(coords, w_i, normal, inside, seed);
 
         RefractIncident {
             w_r,
+            flip,
         }
     }
 }
